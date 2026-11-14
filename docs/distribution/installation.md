@@ -296,7 +296,6 @@ Windowsでは `.venv` フォルダを削除します。
 ## 関連文書
 
 - [操作ガイド](user-guide.md)
-- [v1.19.7 更新案内](release-notes-v1.19.7.md)
 - [出力ファイル仕様](output-format.md)
 
 

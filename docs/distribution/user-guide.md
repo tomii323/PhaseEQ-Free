@@ -2717,7 +2717,6 @@ LR4 FIRはLP／HPの5 Hz〜ナイキスト周波数のうち、目標振幅−10
 - [インストールガイド](installation.md)
 - [更新履歴](history.md)
 - [v2.0.0 更新案内](release-notes-v2.0.0.md)
-- [v1.20.35 更新案内](release-notes-v1.20.35.md)
 - [出力ファイル仕様](output-format.md)
 - [プロジェクトREADME](../../README.md)
 
