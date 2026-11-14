@@ -2,7 +2,7 @@
 
 リリースバージョン: **v2.0.0**
 
-文書更新日: **2026-11-10**
+文書更新日: **2026-11-14**
 
 PhaseEQはスピーカーの測定応答から、目標特性、IIR／FIR補正、帯域分割を設計するアプリです。マルチウェイ画面では各チャンネルを合成し、位相・時間整合を調整して実機DSP用の係数を出力できます。
 
@@ -10,7 +10,9 @@ PhaseEQはスピーカーの測定応答から、目標特性、IIR／FIR補正�
 
 ## FreeとPro
 
-FreeとProは、IIR自動EQ、手動FIR EQ、通常のFIR設計・書き出し、出力Auto Gainを共通で利用できます。**Pro専用：FIR Gain／Phase自動EQ、Waveletグラフ、Reverse Null・クロス付近のディップ・位相／時間整合の詳細評価、Multiwayの2Way+SUB／3Way／4Way（SUB付き含む）、Multiwayの実機向けDSPパッケージ。** FreeのMultiwayはMono／StereoのFullrange、Fullrange+SUB、2Wayに対応します。Proは対応する完成版ZIPを展開して起動します。解除コードやオンライン有効化は不要です。
+**PhaseEQ Free／Proの初版は v2.0.0 です。** Freeは [PhaseEQ-Free](https://github.com/tomii323/PhaseEQ-Free/releases) で公開しています。分離前の旧版は v1.21.13 で更新を終了し、[PhaseEQ-publicの旧版履歴](https://github.com/tomii323/PhaseEQ-public/releases)に残しています。
+
+FreeとProは、IIR自動EQ、手動FIR EQ、通常のFIR設計・書き出し、出力Auto Gainを共通で利用できます。**Pro専用：FIR Gain／Phase自動EQ、Waveletグラフ、Reverse Null・クロス付近のディップ・位相／時間整合の詳細評価、Multiwayの2Way+SUB／3Way／4Way（SUB付き含む）、Multiwayの実機向けDSPパッケージ。** FreeのMultiwayはMono／StereoのFullrange、Fullrange+SUB、2Wayに対応します。
 
 保存済みデータの引き継ぎと更新は[インストールガイド](docs/distribution/installation.md#edition-migration)を参照してください。同梱PDFには分離前の画面例があるため、版による操作の違いは[操作ガイド](docs/distribution/user-guide.md#fir-auto-eq-editions)で確認してください。
 
@@ -43,8 +45,8 @@ FIR OFFでもIIRによる設計を続けられます。FIRイコライザーの�
 | [操作ガイド](docs/distribution/user-guide.md) | 現在の画面名、操作順、設定条件、グラフの読み方 |
 | [出力ファイル仕様](docs/distribution/output-format.md) | FIR／IIR係数、作業保存、DSP用パッケージ |
 | [インストールガイド](docs/distribution/installation.md) | 導入・更新・起動 |
-| [更新履歴](docs/distribution/history.md) | バージョン別の変更と旧ガイドの更新記録 |
-| [v2.0.0 更新案内](docs/distribution/release-notes-v2.0.0.md) | 最新公開版の変更点 |
+| [更新履歴](docs/distribution/history.md) | v2.0.0からのFree／Proの履歴と旧版の参照先 |
+| [v2.0.0 初版案内](docs/distribution/release-notes-v2.0.0.md) | Free／Proの機能差と旧版からの移行 |
 
 リリースZIPには画像付きPDFと利用者向け文書を同梱します。テストプログラム・開発補助スクリプト・開発文書は含みません。[一般公開リポジトリ](https://github.com/tomii323/PhaseEQ-Free)から実行用ソースを取得できます。開発資産は非公開リポジトリで管理しています。
 
@@ -60,7 +62,7 @@ Streamlit、NumPy、pandas、SciPy、Altair、Matplotlib、Plotly、SoundFile、
 
 ## 利用条件
 
-Copyright (c) Tomii323. 公開Free版は個人利用向けの無償フリーウェアです。Proのローカル検証用ZIPには既存の利用条件文書を同梱しています。MIT／GPL等のオープンソースライセンスではありません。正式条件は[LICENSE.md](LICENSE.md)を参照してください。
+Copyright (c) Tomii323. 公開Free版は個人利用向けの無償フリーウェアです。MIT／GPL等のオープンソースライセンスではありません。正式条件は[LICENSE.md](LICENSE.md)を参照してください。
 
 - 本体の商用・業務利用は禁止します。個人的な調査・検証・デバッグ目的の改変は許可します。
 - GitHub上の閲覧・Fork・Pull Requestと、それに必要な変更共有は許可します。この例外を除き、改変版・派生版の公開・提供・再配布は禁止し、オリジナル版の再配布には権利者の事前承諾が必要です。本体の販売・有償配布・再許諾・第三者製品への組み込み配布は禁止します。
