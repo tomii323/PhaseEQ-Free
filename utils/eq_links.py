@@ -1,0 +1,250 @@
+"""EQ ownership, portable snapshots and transactional Multiway persistence.
+
+Channel-specific inputs never enter this model. resolve_eq is the sole owner
+lookup; linked channels return the identical dictionary, not mirrored copies.
+"""
+from __future__ import annotations
+
+from contextlib import contextmanager
+from copy import deepcopy
+import json
+import hashlib
+from pathlib import Path
+import sqlite3
+from uuid import uuid4
+
+CONFIG_FIELDS = {
+    "iir": frozenset({"iir_filters"}),
+    "fir": frozenset({"peq_filters", "shelf_filters", "tilt_filters", "allpass_filters",
+        "gain_peq_filters", "gain_shelf_filters", "gain_tilt_filters", "gain_linear_filters",
+        "auto_eq", "auto_gain_input_shaping", "linear_fir_eq_mask_smoothing_oct",
+        "phase_tilt_smoothing_oct", "gain_tilt_smoothing_oct", "window", "kaiser_beta",
+        "chebyshev_attenuation_db", "tukey_alpha"}),
+}
+SHARED_CATEGORIES = tuple(CONFIG_FIELDS)
+UI_PREFIXES = {"iir": ("auto_iir_",), "fir": ("auto_gain_", "auto_phase_", "auto_iir_shape_")}
+# Persisted implementation provenance belongs to the complete settings payload,
+# not to an editable EQ owner or its optimistic edit baseline.
+UI_FIELD_KINDS = {"auto_iir_shaping_version": "metadata"}
+# Accept the retired category only at the legacy validation boundary.
+LEGACY_CONFIG_FIELDS = {**CONFIG_FIELDS, "target": frozenset({"target_response"})}
+LEGACY_UI_PREFIXES = {**UI_PREFIXES, "target": ("target_",)}
+TARGET_UI_EXCLUDED = {"target_output_formats", "target_url"}
+
+
+def _extract_fields(payload, categories, config_fields, ui_prefixes):
+    fields = set().union(*(config_fields[name] for name in categories))
+    prefixes = tuple(prefix for name in categories for prefix in ui_prefixes[name])
+    return deepcopy({
+        "config": {key: value for key, value in payload.get("config", {}).items() if key in fields},
+        "io": {key: value for key, value in payload.get("io", {}).items()
+               if "target" in categories and key in {"target_response_raw", "target_source_name"}},
+        "ui": {key: value for key, value in payload.get("ui", {}).items()
+               if key.startswith(prefixes) and key not in TARGET_UI_EXCLUDED},
+    })
+
+
+def extract_eq(payload, categories=SHARED_CATEGORIES):
+    result = _extract_fields(normalize_shaping_projection(payload), categories, CONFIG_FIELDS, UI_PREFIXES)
+    # A specific setting family owns its aliases even under an older broad
+    # prefix. Calculation fields and their UI projection must share one owner.
+    result["ui"] = {key: value for key, value in result["ui"].items()
+                    if ui_setting_category(key) in categories}
+    return result
+
+
+def ui_field_kind(key):
+    """Classify provenance before resolving the most specific setting owner."""
+    if key in UI_FIELD_KINDS:
+        return UI_FIELD_KINDS[key]
+    matches = [(len(prefix), category) for category, prefixes in UI_PREFIXES.items()
+               for prefix in prefixes if key.startswith(prefix)]
+    return max(matches)[1] if matches else None
+
+
+def ui_setting_category(key):
+    kind = ui_field_kind(key)
+    return kind if kind in SHARED_CATEGORIES else None
+
+
+def normalize_shaping_projection(payload):
+    """Keep legacy UI-only settings; explicit Config is authoritative."""
+    result = deepcopy(payload)
+    config, ui = result.setdefault("config", {}), result.setdefault("ui", {})
+    legacy_ui = dict(result.get("ui_profile", {}).get("state", {}))
+    legacy_ui.update(ui)
+    if "auto_gain_input_shaping" not in config and not any(
+            key.startswith("auto_iir_shape_") for key in legacy_ui):
+        return result
+    from dataclasses import asdict
+    from phase_fir_designer.auto_iir_input_shaping import InputShapingSettings
+
+    defaults = asdict(InputShapingSettings())
+    if "auto_gain_input_shaping" in config:
+        values = {**defaults, **config["auto_gain_input_shaping"]}
+    else:
+        values = {name: legacy_ui.get("auto_iir_shape_" + name, default)
+                  for name, default in defaults.items()}
+    config["auto_gain_input_shaping"] = values
+    ui.update({"auto_iir_shape_" + name: value for name, value in values.items()})
+    return result
+
+
+def _validate_snapshot(data):
+    if not isinstance(data, dict) or data.get("version") != 1 or not isinstance(data.get("channels"), dict) or not isinstance(data.get("groups"), dict):
+        raise ValueError("Invalid Stereo Link settings")
+    channels, groups = data["channels"], data["groups"]
+    for channel, record in channels.items():
+        if not isinstance(channel, str) or not isinstance(record, dict) or not isinstance(record.get("local"), dict):
+            raise ValueError("Invalid Stereo Link channel")
+        if record.get("group") is not None and record["group"] not in groups:
+            raise ValueError("Missing Stereo Link shared settings")
+        if _extract_fields(record["local"], LEGACY_CONFIG_FIELDS, LEGACY_CONFIG_FIELDS, LEGACY_UI_PREFIXES) != record["local"]:
+            raise ValueError("Stereo Link contains channel-specific settings")
+    for group in groups.values():
+        if not isinstance(group, dict) or not isinstance(group.get("eq"), dict) or not set(group.get("categories", ())) <= set(LEGACY_CONFIG_FIELDS):
+            raise ValueError("Invalid Stereo Link group")
+        if _extract_fields(group["eq"], group["categories"], LEGACY_CONFIG_FIELDS, LEGACY_UI_PREFIXES) != group["eq"]:
+            raise ValueError("Stereo Link contains channel-specific settings")
+
+
+def normalize_snapshot(snapshot):
+    """Validate legacy data before normalizing owners in a private copy."""
+    data = deepcopy(snapshot)
+    _validate_snapshot(data)
+    channels, groups = data["channels"], data["groups"]
+    for record in channels.values():
+        record["local"] = extract_eq(record["local"])
+    for identifier, group in list(groups.items()):
+        group["categories"] = [name for name in group["categories"] if name in SHARED_CATEGORIES]
+        group["eq"] = extract_eq(group["eq"], group["categories"])
+        if not group["categories"]:
+            for record in channels.values():
+                if record["group"] == identifier:
+                    record["group"] = None
+            del groups[identifier]
+    return data
+
+
+def apply_eq(payload, eq):
+    result = deepcopy(payload)
+    for section in ("config", "ui", "io"):
+        result.setdefault(section, {}).update(deepcopy(eq.get(section, {})))
+    return result
+
+
+class EQLinks:
+    def __init__(self, snapshot=None):
+        data = normalize_snapshot(snapshot if snapshot is not None else {"version": 1, "channels": {}, "groups": {}})
+        self.channels, self.groups = data["channels"], data["groups"]
+
+    def snapshot(self):
+        return deepcopy({"version": 1, "channels": self.channels, "groups": self.groups})
+
+    def ensure(self, channel, payload):
+        self.channels.setdefault(channel, {"group": None, "local": extract_eq(payload)})
+
+    def resolve_eq(self, channel):
+        record = self.channels[channel]
+        return self.groups[record["group"]]["eq"] if record["group"] else record["local"]
+
+    def projection_token(self, channel):
+        """Include ownership and private EQ in the optimistic edit baseline."""
+        record = self.channels[channel]
+        group = record["group"]
+        return deepcopy({"record": record, "owner": self.groups.get(group),
+                         "members": sorted(key for key, item in self.channels.items()
+                                           if group and item["group"] == group)})
+
+    def effective(self, channel, payload):
+        record = self.channels[channel]
+        eq = record["local"]
+        result = apply_eq({key: value for key, value in payload.items() if not key.startswith("eq_link")}, eq)
+        if record["group"]:
+            result = apply_eq(result, self.resolve_eq(channel))
+        return result
+
+    def update(self, channel, payload, expected=None):
+        record = self.channels[channel]
+        if expected is not None and self.resolve_eq(channel) != expected:
+            raise ValueError("別の画面でStereo Link設定が変更されました。再読込して編集してください。")
+        # Preserve private categories while replacing only the selected group's fields.
+        record["local"] = extract_eq(payload)
+        owner = self.resolve_eq(channel)
+        categories = self.groups[record["group"]]["categories"] if record["group"] else tuple(CONFIG_FIELDS)
+        updated = extract_eq(payload, categories)
+        owner.clear()
+        owner.update(updated)
+
+    def linked(self, channels):
+        owners = [self.channels.get(channel, {}).get("group") for channel in channels]
+        return bool(owners and owners[0] and all(owner == owners[0] for owner in owners))
+
+    def link(self, channels, source, categories=SHARED_CATEGORIES):
+        channels = tuple(channels)
+        if len(set(channels)) < 2 or source not in channels or not categories:
+            raise ValueError("Stereo Link requires channels, an explicit source and shared settings")
+        if not set(categories) <= set(CONFIG_FIELDS):
+            raise ValueError("Invalid shared settings category")
+        source_eq = self.effective(source, {"config": {}, "ui": {}, "io": {}})
+        self.unlink(channels)
+        group_id = uuid4().hex
+        self.groups[group_id] = {"categories": list(categories), "eq": extract_eq(source_eq, categories)}
+        for channel in channels:
+            self.channels[channel]["group"] = group_id
+
+    def unlink(self, channels):
+        group_ids = {self.channels[channel]["group"] for channel in channels if channel in self.channels}
+        # Group transitions are atomic: every member retains the current effective EQ.
+        for group_id in group_ids - {None}:
+            members = [channel for channel, record in self.channels.items() if record["group"] == group_id]
+            locals_by_channel = {channel: extract_eq(self.effective(channel, {"config": {}, "ui": {}, "io": {}})) for channel in members}
+            for channel in members:
+                self.channels[channel] = {"group": None, "local": deepcopy(locals_by_channel[channel])}
+            del self.groups[group_id]
+
+
+@contextmanager
+def transaction(root: Path, scope: str):
+    """Serialize ownership changes across independent Streamlit processes."""
+    path = Path(root) / "eq_links.sqlite3"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(path, timeout=10) as connection:
+        connection.execute("CREATE TABLE IF NOT EXISTS eq_links (scope TEXT PRIMARY KEY, snapshot TEXT NOT NULL)")
+        connection.execute("BEGIN IMMEDIATE")
+        row = connection.execute("SELECT snapshot FROM eq_links WHERE scope=?", (scope,)).fetchone()
+        model = EQLinks(json.loads(row[0]) if row else None)
+        yield model
+        encoded = json.dumps(model.snapshot(), ensure_ascii=False, sort_keys=True)
+        if not row or encoded != row[0]:
+            if row and snapshot_needs_normalization(row[0]):
+                preserve_legacy_snapshot(Path(root), scope, row[0])
+            connection.execute("INSERT INTO eq_links VALUES (?,?) ON CONFLICT(scope) DO UPDATE SET snapshot=excluded.snapshot", (scope, encoded))
+
+
+def snapshot_needs_normalization(encoded):
+    original = json.loads(encoded)
+    return normalize_snapshot(original) != original
+
+
+def preserve_legacy_snapshot(root, scope, encoded):
+    """Retain the retired DB snapshot before the transaction replaces it."""
+    from utils.exchange_io import atomic_json
+
+    digest = hashlib.sha256((scope + "\n" + encoded).encode()).hexdigest()
+    folder = root / "eq_links_recovery"
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / (digest + ".json")
+    if not path.exists():
+        atomic_json(path, {"scope": scope, "snapshot": json.loads(encoded)})
+
+
+def standalone_payload(payload):
+    """Resolve the selected legacy EQ once, preserving channel-specific inputs."""
+    if "eq_links" in payload:
+        model = EQLinks(payload["eq_links"])
+        channel = payload.get("eq_link_channel")
+        if channel not in model.channels:
+            raise ValueError("Missing Stereo Link channel")
+        payload = model.effective(channel, payload)
+    return deepcopy({key: value for key, value in payload.items() if not key.startswith("eq_link")})

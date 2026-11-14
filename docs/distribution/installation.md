@@ -1,0 +1,357 @@
+# インストールガイド
+
+PhaseEQの環境構築と起動方法を説明します。
+対応形式や操作範囲は[操作ガイド](user-guide.md)を参照してください。
+
+Streamlitは `1.62` 以上、`1.63` 未満を使用し、現在の検証版は`1.62.0`です。
+起動スクリプトは、起動時に検証済み依存版をローカル確認します。不足がなければ更新せずオフラインで起動します。1パッケージだけ検証版より新しい場合は仮想環境からそのパッケージを明示的に削除して対応版を入れ直し、複数の上限超過または壊れた依存関係がある場合は仮想環境を再作成します。修復にはネット接続が必要です。
+
+Windows版はPython 3.12／3.13のx64を対象とします。Windows 11 ARMでは、必須依存パッケージにWindows ARM64ネイティブwheelがないため、OSのx64エミュレーションで公式x64 Pythonを使用します。ランチャーはARM64環境を検出するとx64 Python 3.12をwingetで導入し、ネイティブARM Pythonを採用しません。初回導入直後は、同じコマンドプロンプトへ反映されていないPATHを標準インストール先、Python公式インストーラーのレジストリ情報、ユーザー領域のPythonインストール直下から再検出するため、Windowsや端末を再起動せず続行できます。Python同梱の仮想環境用内部実行ファイルは探索対象にしません。検出時は`Detected Python installation:`に続けて使用候補の場所を表示します。
+
+## 配布物とマニュアル
+
+**Pro専用：FIR Gain／Phase自動EQ、Waveletグラフ、Reverse Null・クロス付近のディップ・位相／時間整合の詳細評価、Multiwayの2Way+SUB／3Way／4Way（SUB付き含む）、Multiwayの実機向けDSPパッケージ。** FreeでもIIR自動EQ・手動FIR EQ・FIR書き出しを利用できます。
+
+リリースZIPを展開すると、`docs/distribution/manual/` に[画像付き操作マニュアル（PDF）](manual/PhaseEQ_v2.0.0_画像付き操作マニュアル_日本語.pdf)があります。PDF表紙の対応版を確認してください。通常の利用にテスト環境の構築は不要です。テスト・開発文書・開発用スクリプトはZIPに含みません。実行用ソースは[一般公開リポジトリ](https://github.com/tomii323/PhaseEQ-Free)から取得できます。
+
+旧公開先 [PhaseEQ-public](https://github.com/tomii323/PhaseEQ-public/releases/tag/v1.21.13) は v1.21.13 で更新を終了しました。旧版のアプリ内更新は、引き続き旧公開先を参照します。[PhaseEQ-Freeのリリース一覧](https://github.com/tomii323/PhaseEQ-Free/releases)から新しいFree版ZIPを取得し、別のフォルダーに展開して、下記の手順でデータを引き継いでください。新しいFree版は `PhaseEQ-Free` を更新元にします。
+
+## 新版へ更新する
+
+編集中の内容を設定ファイルまたは作業セッションへ保存し、PhaseEQとマルチウェイの両方を終了してから新版を展開します。両アプリは同じ配布版を使ってください。旧ブラウザー画面が残る場合は再読み込みし、画面の版表示を確認します。保存済みの測定データや作業DBを削除する必要はありません。変更点は[更新履歴](history.md)を参照してください。
+
+<a id="edition-migration"></a>
+### FreeからProへの移行・Proの更新
+
+アプリを終了してからデータ領域を一式バックアップし、新版ZIPを別フォルダーへ展開します。データ領域はアプリ内の `data/` または `PHASEEQ_DATA_DIR` の指定先です。外部の測定・入力ファイルとExchangeの指定先も確認してください。SQLiteの関連ファイルを含めて保全し、旧版と新版で同じDBを同時に開かないでください。
+
+Freeでも既存のMultiway復元用ZIPを開けます。Pro専用の構成は保存設定を保持したまま計算・出力を停止します。Freeで選べる構成はMono／StereoのFullrange、Fullrange+SUB、2Wayです。Freeの「作業設定ZIPを保存」には復元用の設定が入ります。実機用の係数や機器別ファイルは入りません。
+
+Freeは「PhaseEQ本体の更新」から公開Free版へ更新できます。Proは、対応するPro完成版ZIPを別フォルダーへ展開して更新します。Freeの更新予約はProに適用されません。予約が残っている場合は共通設定から取り消せます。中断した更新の記録がある場合は旧フォルダーごと保全し、Proを別フォルダーへ展開してください。ランチャーの `--update` はPythonの依存関係を更新する指定です。
+
+1. 編集を保存し、PhaseEQとマルチウェイの両方を終了します。ブラウザーのタブを閉じるだけではサーバーは停止しません。
+2. 旧アプリフォルダーと実際のデータ保存先をバックアップします。DBの `-wal`、`-shm`、`-journal` が残っていれば一緒に保全します。
+3. 対応する完成版ZIPを空のフォルダーへ展開します。起動前に、既定構成では旧 `data/` 全体をコピーします。既に新しい `data/` がある場合は別に保全し、DBを混ぜないでください。
+4. `PHASEEQ_DATA_DIR` や `PHASEEQ_COMPOSITE_EXCHANGE_DIR` で外部保存先を指定している場合は、実保存先を保全し、コピー先の絶対パスを指定して両アプリで確認します。新旧のアプリから同じDBを同時に開かないでください。
+5. 出力フォルダーやブラウザーから保存したファイルを別途保全します。旧本体ソース、`.venv/`、`.launcher/`、`.phaseeq-updates/` は引き継ぎません。
+6. 新版で版表示と設定、入力応答、測定、プリセット、設計履歴、マルチウェイの設定とアップロード済みEQ・連携状態を確認します。外部ファイルを読み込めない場合は実際のファイルを選び直してください。
+
+`settings.standalone.json` がある場合はStandaloneで優先されます。設定JSONが参照する応答は `response_assets.sqlite3` に保存されるため、JSONだけでは復元できない場合があります。 `data/tmp/composite_exchange/` も作業データとして保全します。作業セッションZIPは全DBのバックアップとは別に保管してください。
+
+移行の確認が終わるまで旧版とバックアップを保持してください。旧版へ戻す場合は、更新後のDBと混ぜず、バックアップのコピーで起動します。
+
+## macOS
+
+すぐに起動したい場合は、プロジェクトフォルダで次を実行します。
+
+```sh
+chmod +x run_PhaseEQ_mac_linux.sh
+./run_PhaseEQ_mac_linux.sh
+```
+
+この起動スクリプトは、仮想環境と依存関係の確認、空きポートの選択、ブラウザ起動まで行います。既存`.venv`がStreamlit 1.62系を含む検証環境と一致する場合は、pip、Homebrew等のネットワーク処理を行いません。初回構築や依存修復時はオンライン導入が必要です。
+
+通常のオフライン優先起動:
+
+```sh
+./run_PhaseEQ_mac_linux.sh
+```
+
+オンライン環境でpipと依存関係を明示更新する場合:
+
+```sh
+./run_PhaseEQ_mac_linux.sh --update
+```
+
+起動ログを保存する場合は`--log`を併用できます。オフライン起動ではStreamlit利用統計送信も無効になります。スピーカー仕様のURL読込やメーカー校正ページを開く機能はネットワークを必要としますが、測定、設計、DB、ローカルファイル入出力、ESS生成はローカルで動作します。
+
+### 1. Pythonを用意する
+
+Homebrewを使う場合は次を実行します。
+
+```sh
+brew install python
+```
+
+### 2. 仮想環境を作成する
+
+ターミナルでプロジェクトフォルダへ移動し、仮想環境を作成します。
+macOSでは通常 `py` は使わず、`python3` を使います。
+仮想環境を有効化した後は、環境内の `python` を使います。
+
+```sh
+cd "/path/to/PhaseEQ"
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### 3. 依存関係をインストールする
+
+```sh
+python -m pip install --constraint constraints/test-environment.txt pip setuptools wheel
+python -m pip install --upgrade --constraint constraints/test-environment.txt -r requirements.txt
+```
+
+### 4. 起動する
+
+```sh
+python -m streamlit run phaseeq.py
+```
+
+ブラウザで `http://localhost:8501` を開きます。
+
+## Windows 11
+
+すぐに起動したい場合は、`run_PhaseEQ_windows.bat` をダブルクリックします。
+仮想環境の作成、依存関係の確認、空きポートの選択、ブラウザ起動まで自動で行います。既存`.venv`がStreamlit 1.62系を含む検証環境と一致する場合は、pipやwingetへ接続せずオフラインで起動します。初回構築や依存修復時はオンライン導入が必要です。
+macOS/Linux版と同じく、固定バージョンが揃っていても最終import確認が失敗した場合はオンライン修復を試みます。PhaseEQ終了時は、同時起動したマルチウェイも自動終了します。
+
+通常のオフライン優先起動:
+
+```bat
+run_PhaseEQ_windows.bat
+```
+
+オンライン環境でpipと依存関係を明示更新する場合:
+
+```bat
+run_PhaseEQ_windows.bat --update
+```
+
+起動ログを保存する場合は`--log`を併用できます。オフライン起動ではStreamlit利用統計送信も無効になります。
+
+### 初回設定の要点
+
+| 項目 | 要点 |
+|---|---|
+| Python | 検証済みの公式x64版Python 3.12または3.13を使用 |
+| Windows ARM | ARM64ネイティブPythonではなくx64 Python 3.12を使用 |
+| PATH | インストール時にPythonのPATH登録を有効にする |
+| PowerShell | 仮想環境を有効化できない場合だけ実行ポリシーを変更する |
+| 仮想環境 | プロジェクト内の`.venv`へ依存ライブラリを分離する |
+| pip | `pip`単独ではなく`python -m pip`を使用する |
+| 起動 | 仮想環境を有効化してから`python -m streamlit`で起動する |
+
+Windowsの新しいPython Install Managerで`py -3.13`に対応Runtimeが登録されていない場合も、ランチャーはその候補を使用せず、`py -3.12`、`py -3`、PATH上の`python`の順に実際に起動できるx64 Python 3.12／3.13を探します。`No runtime installed that matches ...`やARM64ネイティブPythonは候補不採用として扱います。Python 3.14だけがある場合も採用せず、`winget`で検証済みのPython 3.12を導入します。
+
+プロジェクトは、短く分かりやすいパスへ展開することを推奨します。
+
+```text
+C:\Projects\PhaseEQ
+```
+
+### 1. Pythonを用意する
+
+通常はランチャーへPythonの検出と導入を任せてください。手動構築する場合はx64版Python 3.12または3.13をインストールします。公式インストーラーを使う場合は、
+`Add python.exe to PATH` を有効にしてください。
+
+Windows 11 ARMで手動導入する場合は、管理者権限を必要としないユーザー領域へx64版を指定します。
+
+```bat
+winget install -e --id Python.Python.3.12 --architecture x64 --scope user --force
+```
+
+ARM64版Pythonが既に入っていてもアンインストールは不要です。PhaseEQ用`.venv`だけをx64 Pythonから作成します。
+
+SoundDevice 0.5.5はWindows x64／ARM64の両wheelを提供します。Windows ARM上のx64 Pythonでは、SoundDeviceがホストCPUを見てARM64版PortAudio DLLを誤選択するため、PhaseEQはSoundDeviceのimport時だけPython ABIに合わせてx64版`libportaudio64bit.dll`を選択します。それでも音声ドライバー等により読み込めない場合は、`Optional audio runtime is unavailable`と具体的な例外を警告してPhaseEQを起動します。
+
+インストール後、新しいPowerShellを開いて確認します。
+
+```powershell
+python --version
+py --version
+python -m pip --version
+```
+
+Windowsでは`py`はPython Launcherです。x64 Windowsでは仮想環境作成に`py -3.12`または`py -3.13`を使用できます。Windows ARMでは`py`がARM64版を選ぶ場合があるため、手動構築より`run_PhaseEQ_windows.bat`を推奨します。
+
+### 2. 仮想環境を作成する
+
+PowerShellでプロジェクトフォルダへ移動します。
+
+```powershell
+cd "C:\Projects\PhaseEQ"
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+`py` が見つからない場合は、次のように `python` で作成します。
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+有効化できない場合は、現在のPowerShellだけ一時的に許可します。
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+```
+
+### 3. 依存関係をインストールする
+
+```powershell
+python -m pip install --constraint constraints/test-environment.txt pip setuptools wheel
+python -m pip install --upgrade --constraint constraints/test-environment.txt -r requirements.txt
+```
+
+### 4. 起動する
+
+```powershell
+python -m streamlit run phaseeq.py
+```
+
+自動的にブラウザが開かない場合は、次へアクセスします。
+
+```text
+http://localhost:8501
+```
+
+### 5. 2回目以降の起動
+
+```powershell
+cd "C:\Projects\PhaseEQ"
+.\.venv\Scripts\Activate.ps1
+python -m streamlit run phaseeq.py
+```
+
+## Linux
+
+Ubuntu / Debian系の例です。
+
+すぐに起動したい場合は、プロジェクトフォルダで次を実行します。
+
+```sh
+chmod +x run_PhaseEQ_mac_linux.sh
+./run_PhaseEQ_mac_linux.sh
+```
+
+Linuxでは、起動スクリプトがPython環境、venv、pip、日本語フォントの有無を確認します。通常起動でランタイムが揃っていればネットワーク処理を行いません。日本語フォントだけが不足する場合は警告して起動を継続します。依存不足時または`--update`指定時は、`apt` / `dnf` / `pacman`による自動インストールを試みるため、ネットワークと`sudo`入力が必要になることがあります。
+
+```sh
+sudo apt update
+sudo apt install python3 python3-venv python3-pip
+python3 --version
+cd /path/to/PhaseEQ
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --constraint constraints/test-environment.txt pip setuptools wheel
+python -m pip install --upgrade --constraint constraints/test-environment.txt -r requirements.txt
+python -m streamlit run phaseeq.py
+```
+
+手動インストールの場合もPython 3.12または3.13が必要です。
+ディストリビューション標準の`python3`が3.12未満または3.14以降の場合は、OSの手順に従ってPython 3.12／3.13を導入するか、起動スクリプトを使用してください。
+
+## 終了方法
+
+起動しているターミナルで `Ctrl + C` を押します。
+
+## トラブル対処
+
+### `ModuleNotFoundError` が表示される
+
+標準ランチャーの初回起動では、`Recreating virtual environment`の後に不足依存関係を検出し、オンラインインストールへ進みます。インストール開始前に`numpy`などの`ModuleNotFoundError`で停止する場合は、修正済みの最新Releaseへ更新してください。
+
+手動起動の場合は、プロジェクト直下で起動しているか、仮想環境が有効かを確認してください。
+
+```sh
+pwd
+python -m pip list
+python -m streamlit run phaseeq.py
+```
+
+### `app.py` が見つからない
+
+現在の起動ファイルは `phaseeq.py` です。
+
+```sh
+python -m streamlit run phaseeq.py
+```
+
+### ポート8501を使用中と表示される
+
+別ポートを指定します。
+
+```sh
+python -m streamlit run phaseeq.py --server.port 8502
+```
+
+### グラフやUIの色が想定と違う
+
+Streamlitのライト / ダークテーマに合わせて配色を切り替えています。
+OSやブラウザ側の表示モードを変更した場合は、アプリを再読み込みしてください。
+
+## アンインストール
+
+作成した仮想環境を削除します。
+
+```sh
+rm -rf .venv
+```
+
+Windowsでは `.venv` フォルダを削除します。
+
+## 関連文書
+
+- [操作ガイド](user-guide.md)
+- [v1.19.7 更新案内](release-notes-v1.19.7.md)
+- [出力ファイル仕様](output-format.md)
+
+
+## PhaseEQ本体の更新
+
+PhaseEQの接続状態・入力情報の右側とマルチウェイの「使い方の流れ」の末尾に、保存後に起動元のターミナルで`Ctrl+C`を押す終了方法を表示します。
+
+公式公開ReleaseのZIPから展開したPhaseEQは、起動時にGitHubの正式Releaseを確認します。更新がある場合は案内を表示します。オフラインや確認失敗の場合も現在の版で作業を続けられます。
+
+1. PhaseEQの「設定」から「PhaseEQ本体の更新」を開きます。「最新版を確認」で再確認できます。
+2. 更新内容を確認し、「更新をダウンロードして予約」を押します。公開ZIP全体とファイル別のSHA-256を検証してから予約します。
+3. PhaseEQとマルチウェイで編集中の内容を保存し、起動元のターミナル（Windowsはコマンドプロンプト）で `Ctrl+C` を押して両アプリの終了を確認します。別々に起動した場合は、それぞれの起動元で終了します。ブラウザーのタブを閉じるだけではサーバーは終了しません。
+4. `run_PhaseEQ_mac_linux.sh`または`run_PhaseEQ_windows.bat`から起動し直します。起動前に更新を適用し、必要なPython依存関係を既存の起動処理で確認します。
+5. 起動後、PhaseEQのバージョンが予約した版になったことを確認します。更新予約後の設定画面にも、この保存・終了・再起動・版確認の手順を表示します。
+
+`data/`内の設定・測定DB・ユーザープリセット、出力データ、仮想環境は本体更新で上書きしません。旧ソースと廃止された配布ファイルは`.phaseeq-updates/backup-*`へ退避されます。適用中に失敗した場合は旧ソースへ戻し、更新予約を保持して起動を停止します。次回起動時は中断記録を確認して復元してから再試行します。
+
+本体ファイルの更新が成功すると、今回作成したバックアップと、前回の成功更新で記録したバックアップを直ちに削除します。成功後の旧版本体は保持しません。失敗・中断時は復元用バックアップを保持し、予約取り消しでは既存バックアップを削除しません。削除できない場合は起動元のターミナルに削除未完了を表示し、新版の適用は維持します。残った削除対象は次の更新成功時に再試行します。更新処理が成功記録に残していないフォルダーは自動削除しません。
+
+この成功判定は本体ファイルの置き換え完了を意味し、新版の起動やDB読み込みの成功確認は含みません。本体バックアップにユーザーDBは含まれません。DBは引き継がれ、新版が開く際に必要なテーブルや列を追加する場合があります。
+
+Git管理中の開発用チェックアウト、書き込みできないインストール先、`PUBLIC_FILES.sha256`がない配布物は本体更新の対象外です。配布ソースを利用者が変更した場合も更新を停止します。公式ZIPを別の場所へ展開して移行してください。更新処理はGitHub認証情報を要求しません。
+
+ランチャーの既存の`--update`はPython依存パッケージの更新用です。本体の更新予約とは別の操作です。
+
+
+予約後、アプリを終了する前なら「更新予約を取り消す」で取り消せます。ローカル変更などでランチャーが更新を停止した場合は、アプリのフォルダーで`python runtime/app_update.py --cancel`を実行すると、ダウンロードを保持したまま予約を解除できます。中断記録が残っている場合は、先にランチャーからの復元を行ってください。
+
+
+### 正規ZIPを別フォルダーへ展開した場合の設定・データベースの復帰
+
+本体更新が停止して正規ZIPから新しく起動する場合は、旧フォルダーの利用者データをコピーして引き継ぎます。フォルダー名は更新前の版のままの場合があるため、名前だけで版を判断しないでください。
+
+1. 編集内容を保存し、PhaseEQとマルチウェイの両サーバーを終了します。起動元のターミナルで `Ctrl+C` を押し、終了を確認します。ブラウザーのタブを閉じるだけでは不十分です。
+2. 旧フォルダー全体を別の場所にコピーして保全します。DBは終了後にコピーし、SQLiteの `-wal`・`-shm`・`-journal` が残っている場合もDBと一緒に保全します。
+3. 正規公開ZIPを新しいフォルダーへ展開します。旧フォルダーへ上書き展開せず、新フォルダーをまだ起動しないでください。
+4. 旧フォルダーの `data` フォルダーを、新フォルダー直下へ丸ごとコピーします。すでに新フォルダーを起動して `data` ができている場合は、両サーバーを終了し、その新しい `data` も別の場所へ退避してからコピーします。新旧のDBファイルを混在させないでください。
+5. 必要な出力ファイルは旧フォルダーの `output` から別途コピーします。旧 `.venv`、`.launcher`、`.phaseeq-updates`、本体ソース、`.gitignore`、`.gitattributes` は引き継ぎません。
+6. 新フォルダーの起動スクリプトを実行します。仮想環境は新フォルダー用に準備されます。
+7. 設定、測定ライブラリの登録件数・対象データ、ドライバー仕様、DSP／マルチウェイの保存システム、履歴を確認します。入力データが旧フォルダー内の絶対パスを参照している場合は、新しい保存先を選び直します。必要に応じてFIR／IIRを再生成します。
+8. 復帰を確認するまでは、旧フォルダーと保全コピーを保持してください。
+
+通常の保存先は次のとおりです。個別のDBだけを選ぶより、`data` 全体をコピーすると関連データも一緒に引き継げます。
+
+| 保存先 | 内容 |
+| --- | --- |
+| `data/settings.json` | PhaseEQの保存設定 |
+| `data/databases/` | 測定、ドライバー仕様、DSP／マルチウェイのシステム、設計履歴などのDB |
+| `data/snapshots/` | 設定スナップショット |
+| `data/presets/` | ユーザープリセット |
+
+たとえば、旧 `/Users/tomitaminoru/Downloads/PhaseEQ_v1.20.10/data` を、新しく展開した `PhaseEQ_v1.20.18` フォルダーの直下へコピーします。新しい保存先は `PhaseEQ_v1.20.18/data` です。
+
+`PHASEEQ_DATA_DIR` を指定している場合は、その指定先が実際のデータ保存場所です。既定の `data` と取り違えず、指定先を保全してください。同じ指定先を新旧アプリで同時に開かないでください。
+
+旧形式でフォルダー直下に `settings.json`、`config_export`、`speaker_measurements.sqlite3`、`speaker_specs_user.sqlite3`、`speaker_specs_loudspeaker_database.sqlite3`、`settings` が残っている場合は、それらも保全します。新フォルダーの同じ位置へコピーすると通常起動時に `data` へ移行します。ただし、移行先に同名データがある場合は上書きしないため、競合時は元の内容を確認してください。
+
+画面から復元する場合は「設定 → バックアップと復元」で設定JSONや作業セッションZIPを適用し、測定・ドライバーDBはそれぞれのJSONで別途Importします。作業セッションZIPだけでは、DBの全登録内容や履歴は復元されません。全体の引き継ぎには上記の `data` コピーを使用してください。
