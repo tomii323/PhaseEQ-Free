@@ -504,6 +504,40 @@
     "ja": "1次オールパス · Fcで−90° · SOS 1段",
     "en": "1st-order All Pass · −90° at Fc · 1 SOS section"
   },
+  "ui.3ddcc61f458c55": {
+    "source": "REW PEQ (.txt)",
+    "ja": "REW PEQ (.txt)",
+    "en": "REW PEQ (.txt)"
+  },
+  "ui.1a0c8e9d8d177f": {
+    "source": "REW PEQの読み込み", "ja": "REW PEQの読み込み", "en": "Import REW PEQ"
+  },
+  "ui.303862eaf0fad8": {
+    "source": "REWフィルター設定 (.txt)", "ja": "REWフィルター設定 (.txt)", "en": "REW filter settings (.txt)"
+  },
+  "ui.9bd92c3d185cc0": {
+    "source": "REWでEqualiserをGenericにし、Export filter settings as textで保存します。PK（PEQ）のON／OFFに対応し、Noneは読み飛ばします。確認後、既存IIRの末尾へManual PEQとして追加します。Qは既存仕様の0.1刻みに丸めます（0.1〜5）。周波数・ゲインの範囲外や他のフィルター種類を含む場合は読み込みません。追加前に一覧のQとON／OFFを確認してください。",
+    "ja": "REWでEqualiserをGenericにし、Export filter settings as textで保存します。PK（PEQ）のON／OFFに対応し、Noneは読み飛ばします。確認後、既存IIRの末尾へManual PEQとして追加します。Qは既存仕様の0.1刻みに丸めます（0.1〜5）。周波数・ゲインの範囲外や他のフィルター種類を含む場合は読み込みません。追加前に一覧のQとON／OFFを確認してください。",
+    "en": "In REW, select Generic and use Export filter settings as text. PK (PEQ) ON/OFF states are supported; None rows are skipped. After review, append as Manual PEQs to the existing IIR list. Q is rounded to the existing 0.1 grid (0.1–5). Out-of-range frequency/gain or other filter types block import. Check Q and ON/OFF in the preview before adding."
+  },
+  "ui.3e8af2f73b2123": {
+    "source": "PEQを末尾へ追加", "ja": "PEQを末尾へ追加", "en": "Append PEQ filters"
+  },
+  "ui.707c761441fff0": {
+    "source": "REW PEQを読み込めません。設定は変更していません。{p0}",
+    "ja": "REW PEQを読み込めません。設定は変更していません。{p0}",
+    "en": "Cannot import REW PEQ. Settings are unchanged. {p0}"
+  },
+  "ui.1cb8c478db862b": {
+    "source": "IIRのPEQをREW形式のテキストで出力します。手動・自動の並び順とON／OFFを保持します。取込後に周波数・ゲイン・Q・ON／OFFを確認してください。",
+    "ja": "IIRのPEQをREW形式のテキストで出力します。手動・自動の並び順とON／OFFを保持します。取込後に周波数・ゲイン・Q・ON／OFFを確認してください。",
+    "en": "Export IIR PEQ as REW-format text, preserving manual/auto order and ON/OFF states. After import, check frequency, gain, Q, and ON/OFF states."
+  },
+  "ui.9c71a2b4945c91": {
+    "source": "REW形式：PEQ {p0}件。対象外のIIR {p1}件は含みません。Shelf・HP／LP・All Pass・FIR・出力ゲイン／Delay／極性は既存の各出力を使います。",
+    "ja": "REW形式：PEQ {p0}件。対象外のIIR {p1}件は含みません。Shelf・HP／LP・All Pass・FIR・出力ゲイン／Delay／極性は既存の各出力を使います。",
+    "en": "REW format: {p0} PEQ filters; {p1} other IIR filters excluded. Use the existing outputs for Shelf, HP/LP, All Pass, FIR, and output gain/delay/polarity."
+  },
   "ui.19fe6ec8b0bf0a": {
     "source": "Generic IIR parameters",
     "ja": "汎用IIRパラメーター",

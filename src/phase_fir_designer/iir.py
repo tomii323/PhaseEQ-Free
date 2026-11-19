@@ -4,6 +4,7 @@ from dataclasses import dataclass, replace
 import csv
 import io
 import json
+import re
 from time import perf_counter
 from typing import Iterable
 
@@ -4333,6 +4334,61 @@ def export_biquad_json(filters: Iterable[IIRFilter], sample_rate: int, *, extra_
         "sections": biquad_rows(filters, sample_rate, extra_sos=extra_sos),
     }
     return json.dumps(payload, ensure_ascii=False, indent=2)
+
+
+def import_rew_peq(text: str, sample_rate: int) -> list[IIRFilter]:
+    """Validate a Generic REW text file before returning editable Manual PEQs."""
+    number = r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?"
+    row_pattern = re.compile(
+        rf"Filter\s+(\d+)\s*:\s*(ON|OFF)\s+PK\s+Fc\s+({number})\s*Hz"
+        rf"\s+Gain\s+({number})\s*dB\s+Q\s+({number})", re.IGNORECASE,
+    )
+    filters: list[IIRFilter] = []
+    seen: set[int] = set()
+    for line_number, raw in enumerate(text.lstrip('\ufeff').splitlines(), start=1):
+        line = raw.strip()
+        if line.lower().startswith("equaliser:"):
+            if line.split(":", 1)[1].strip().lower() != "generic":
+                raise ValueError("REW Equaliser: Generic")
+        if not re.match(r"Filter\b", line, re.IGNORECASE) or line.lower() == "filter settings file":
+            continue
+        empty = re.fullmatch(r"Filter\s+(\d+)\s*:\s*(?:ON|OFF)\s+None", line, re.IGNORECASE)
+        match = row_pattern.fullmatch(line)
+        index = (empty or match).group(1) if (empty or match) else None
+        if index is None:
+            raise ValueError(f"Line {line_number}: Filter <n>: ON/OFF PK Fc <Hz> Hz Gain <dB> dB Q <Q>")
+        if int(index) < 1:
+            raise ValueError(f"Line {line_number}: duplicate/invalid Filter {index}")
+        # REW appends separate HP/LP slots numbered 1 and 2, including None rows.
+        if empty:
+            continue
+        if int(index) in seen:
+            raise ValueError(f"Line {line_number}: duplicate/invalid Filter {index}")
+        seen.add(int(index))
+        index, state, fc_text, gain_text, q_text = match.groups()
+        fc, gain, q = map(float, (fc_text, gain_text, q_text))
+        if not (1 <= fc <= sample_rate / 2 - 1 and -30 <= gain <= 20 and 0.1 <= q <= IIR_PEQ_Q_MAX):
+            raise ValueError(f"Line {line_number}: Fc 1–{sample_rate / 2 - 1:g} Hz, Gain -30–20 dB, Q 0.1–{IIR_PEQ_Q_MAX:g}")
+        filters.append(IIRFilter(fc=fc, gain_db=gain, q=quantize_iir_q("peq", q),
+                                 enabled=state.upper() == "ON", origin="manual"))
+    if not filters:
+        raise ValueError("REW Generic PK: no PEQ filters")
+    return filters
+
+
+def export_rew_peq(filters: Iterable[IIRFilter]) -> str:
+    """Serialize PEQ parameters in REW's Generic filter text format."""
+    lines = ["Filter Settings file", "", "Notes: PhaseEQ IIR PEQ only", "", "Equaliser: Generic", ""]
+    for index, item in enumerate(filters, start=1):
+        if item.kind != "peq":
+            raise ValueError("REW PEQ export accepts peaking filters only")
+        values = (float(item.fc), float(item.gain_db), float(item.q))
+        if not all(np.isfinite(value) for value in values) or item.fc <= 0 or item.q <= 0:
+            raise ValueError("REW PEQ requires finite Fc/Gain/Q and positive Fc/Q")
+        fc, gain, q = (f"{value:.10f}".rstrip("0").rstrip(".") for value in values)
+        state = "ON" if item.enabled else "OFF"
+        lines.append(f"Filter {index}: {state} PK Fc {fc} Hz Gain {gain} dB Q {q}")
+    return "\n".join(lines) + "\n"
 
 
 def export_iir_parameter_document(filters: Iterable[IIRFilter], sample_rate: int, *, extra_sos=()) -> str:

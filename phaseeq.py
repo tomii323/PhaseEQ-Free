@@ -203,6 +203,8 @@ from phase_fir_designer.iir import (
     export_biquad_csv,
     export_biquad_json,
     export_iir_parameter_document,
+    export_rew_peq,
+    import_rew_peq,
     export_minidsp_biquads,
     export_sigmastudio_biquads,
     export_camilladsp_biquads,
@@ -9200,6 +9202,7 @@ def _render_iir_biquad_downloads(
     key_prefix: str,
     file_role: str = "IIR",
     extra_sos=(),
+    include_rew_peq: bool = False,
 ) -> None:
     project_name = str(st.session_state.get("project_name", APP_NAME))
     if filters or np.asarray(extra_sos).size:
@@ -9212,6 +9215,19 @@ def _render_iir_biquad_downloads(
             on_click="ignore",
             help=ui_message('ui.ca01bb125c6d44'),
         )
+    if include_rew_peq:
+        peq_filters = [item for item in filters if item.kind == "peq"]
+        if peq_filters:
+            st.download_button(
+                ui_message('ui.3ddcc61f458c55'),
+                data=deferred_call(export_rew_peq, peq_filters),
+                file_name=output_file_name(project_name, file_role, "txt", app_slug=APP_SLUG, sample_rate=sample_rate, target="REW-PEQ", band=output_band_name, timestamp=OUTPUT_GENERATED_AT),
+                mime="text/plain",
+                key=f"{key_prefix}_rew_peq",
+                on_click="ignore",
+                help=ui_message('ui.1cb8c478db862b'),
+            )
+            st.caption(ui_message('ui.9c71a2b4945c91', p0=len(peq_filters), p1=len(filters) - len(peq_filters)))
     enabled = [item for item in filters if item.enabled]
     rows = biquad_rows(enabled, sample_rate, extra_sos=extra_sos)
     st.caption(
@@ -9266,6 +9282,30 @@ def _render_iir_biquad_downloads(
             on_click="ignore",
             help=ui_message('ui.13324b224d0975'),
         )
+
+
+def _render_rew_peq_import(nyquist: float, sample_rate: int) -> None:
+    with st.expander(ui_message('ui.1a0c8e9d8d177f')):
+        st.caption(ui_message('ui.9bd92c3d185cc0'))
+        uploaded = st.file_uploader(ui_message('ui.303862eaf0fad8'), type=["txt"], key="iir_rew_peq_file")
+        if uploaded is None:
+            return
+        try:
+            imported = import_rew_peq(uploaded.getvalue().decode("utf-8-sig"), sample_rate)
+            current = _collect_iir_state(nyquist)
+            from list_menu_state import require_capacity
+            require_capacity("iir_filter_items", len(current), len(imported))
+        except (ValueError, UnicodeError) as exc:
+            st.error(ui_message('ui.707c761441fff0', p0=str(exc)))
+            return
+        st.dataframe([{"ON": item.enabled, "Frequency Hz": item.fc, "Gain dB": item.gain_db, "Q": item.q}
+                      for item in imported], hide_index=True)
+        if localized_button(st, ui_message('ui.3e8af2f73b2123'), key="iir_rew_peq_append"):
+            _set_registry_items("iir_filter_items", [_iir_registry_payload(item) for item in [*current, *imported]])
+            st.session_state.pop("_iir_auto_diagnostics", None)
+            st.session_state.pop("_iir_auto_profile_warning", None)
+            _queue_result_detail_view_restore()
+            st.rerun()
 
 
 def _render_iir_editor(nyquist: float, sample_rate: int, *, view: str) -> list[IIRFilter]:
@@ -19879,6 +19919,8 @@ if active_page == "IIR EQ":
         st.caption(
             ui_message('ui.c3a4d9f3c21d6c')
         )
+        if iir_eq_view == "Gain":
+            _render_rew_peq_import(nyquist, int(sample_rate))
         iir_filters = _render_iir_editor(nyquist, int(sample_rate), view=iir_eq_view)
     output_step = 2
     if iir_eq_view == "Gain":
@@ -19888,7 +19930,7 @@ if active_page == "IIR EQ":
     _flow_section(output_step, ui_message('ui.86508be7a30455'), tag=ui_message('ui.d38a2a54cf74a6'))
     with st.container(border=True):
         st.caption(ui_message('ui.81f8bd7c5614b3'))
-        _render_iir_biquad_downloads(_collect_iir_state(nyquist), int(sample_rate), key_prefix="iir_page_biquad")
+        _render_iir_biquad_downloads(_collect_iir_state(nyquist), int(sample_rate), key_prefix="iir_page_biquad", include_rew_peq=True)
     iir_variant_slot = st.empty()
 
 if navigation_page == "FIR EQ":
@@ -22450,6 +22492,7 @@ with live_result_body_window:
             int(sample_rate),
             key_prefix="export_iir_biquad",
             file_role="IIR-EQ",
+            include_rew_peq=True,
         )
         from phase_fir_designer.linear_fir import band_split_output_auxiliary_sos
         split_alignment_sos = band_split_output_auxiliary_sos(config)

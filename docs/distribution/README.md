@@ -1,6 +1,6 @@
 # 利用者向けドキュメント
 
-文書一覧更新日: **2026-11-13**／対象公開版: **PhaseEQ v2.0.0**
+文書一覧更新日: **2026-11-13**／対象公開版: **PhaseEQ v2.0.1**
 
 **Pro専用：FIR Gain／Phase自動EQ、Waveletグラフ、Reverse Null・クロス付近のディップ・位相／時間整合の詳細評価、Multiwayの2Way+SUB／3Way／4Way（SUB付き含む）、Multiwayの実機向けDSPパッケージ。** FreeのMultiwayはMono／StereoのFullrange、Fullrange+SUB、2Wayに対応します。 IIR自動EQ、手動FIR EQ、FIR書き出し、出力時のAuto GainはFreeでも使えます。
 
@@ -16,7 +16,7 @@
 | 保存物とDSPへ渡すファイルを選ぶ | [出力ファイル仕様](output-format.md) |
 | 書き出し後の確認をする | [出力データの確認と外部機器での利用](user-guide.md#external-use) |
 | 利用条件と権利表記の確認先を知る | [正式条件：LICENSE.md](../../LICENSE.md)／[要点：利用条件・著作権](user-guide.md#usage-terms) |
-| バージョンごとの変更を確認する | [更新履歴](history.md)／[v2.0.0 更新案内](release-notes-v2.0.0.md) |
+| バージョンごとの変更を確認する | [更新履歴](history.md)／[v2.0.1 更新案内](release-notes-v2.0.1.md) |
 
 操作ガイドは現在の使い方、更新履歴は過去の変更を説明します。設計中の設定を戻すアプリの「履歴」機能は、操作ガイドの「設計設定の履歴」を参照してください。
 

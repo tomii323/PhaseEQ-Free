@@ -1,7 +1,7 @@
 # PhaseEQ 出力ファイル仕様
 
 - 文書更新日: 2026-11-14
-- 対象公開版: PhaseEQ v2.0.0
+- 対象公開版: PhaseEQ v2.0.1
 - 文書状態: 現行仕様と15ページ簡易操作マニュアルに対応
 
 PhaseEQの「書き出し」、マルチウェイの「保存・出力」、PhaseEQの「設定 → バックアップと復元」で保存できるファイルを説明します。操作順は[操作ガイド](user-guide.md)、過去の変更は[更新履歴](history.md)を参照してください。
@@ -33,6 +33,7 @@ Pro専用のC-DSP 8x12 DL向けZIPは、Pre/PostのXover係数、チャンネル
 | 目標応答 | 目標応答の受け渡し | いいえ |
 | IIR バイクアッド | 外部DSPへのIIR実装 | いいえ |
 | Generic IIR Parameters | バイクアッドを直接入力できないIIR-only DSPへの設計値転記 | いいえ |
+| REW PEQ (.txt) | REW Generic形式のPEQ設定の受け渡し | IIR PEQのみ読み込み可能 |
 | FIR coefficients / WAV | 畳み込みエンジンへのFIR実装 | いいえ |
 | システム プリセット JSON | DSPシステム設定の保存・再利用 | はい |
 | DSP Configuration Package ZIP | Device別の実装ファイル一式 | いいえ |
@@ -69,6 +70,16 @@ PhaseEQ 書き出しではIIRイコライザー、出力帯域分割ページ、
 転記時は適用 orderの上から順に設定します。DSPごとにShelf Q、クロス family、オールパスの定義や設定可能範囲が異なります。転記前に仕様を照合し、転記後は対象DSPの実現応答を確認してください。
 
 追加のオールパス・極性段はGeneric IIR Parameters内でもバイクアッド係数表として記録します。通常のパラメーター表だけを転記しても全段は再現できません。
+
+## REW PEQテキスト
+
+`IIR EQ`のGain画面と「書き出し」のIIR EQ出力にある`REW PEQ (.txt)`で、手動・自動のPEQを現在の順序とON／OFF状態で保存します。各行は`Filter 1: ON PK Fc 100 Hz Gain -3 dB Q 1`の形式です。Shelf・HP／LP・All Pass・FIR・出力ゲイン／Delay／極性は対象外です。
+
+読み込みは`IIR EQ → Gain → REW PEQの読み込み`から行います。REWのEqualiserを`Generic`にし、`Export filter settings as text`で保存したファイルを選びます。プレビューを確認して`PEQを末尾へ追加`を押すと、現在編集中のIIR一覧へManual PEQとして追加します。既存IIRは保持し、`None`行は読み飛ばします。
+
+既存の編集範囲に合わせ、周波数は1 Hz〜Nyquist−1 Hz、ゲインは−30〜+20 dB、Qは0.1〜5とします。Qは0.1刻みへ丸めるため、追加前にプレビューのQを確認してください。範囲外、未対応フィルター種類、不正な行、件数上限超過がある場合は、ファイル全体を追加せず設定を保持します。
+
+REWの`.req`と`Export filter settings as formatted text`は対象外です。REW自身のフィルター保存・復元には`.req`を使います（[REW公式File Menu](https://www.roomeqwizard.com/help/help_en-GB/html/file.html)）。外部ソフト・DSPへ渡す場合は、取込後に周波数・ゲイン・Q・ON／OFFと実現応答を確認してください。
 
 ## FIR
 
