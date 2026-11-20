@@ -1,7 +1,7 @@
 # PhaseEQ 出力ファイル仕様
 
 - 文書更新日: 2026-11-14
-- 対象公開版: PhaseEQ v2.0.2
+- 対象公開版: PhaseEQ v2.0.3
 - 文書状態: 現行仕様と15ページ簡易操作マニュアルに対応
 
 PhaseEQの「書き出し」、マルチウェイの「保存・出力」、PhaseEQの「設定 → バックアップと復元」で保存できるファイルを説明します。操作順は[操作ガイド](user-guide.md)、過去の変更は[更新履歴](history.md)を参照してください。
@@ -99,7 +99,7 @@ REWの`.req`と`Export filter settings as formatted text`は対象外です。RE
 
 ### CamillaDSP用YAMLの読み込み
 
-同じ読み込み欄で、REWのCamillaDSP用に保存した`.yml`／`.yaml`を選べます。CamillaDSP本体の設定ファイルは不要です。`filters:`のパラメータ形式を読み込み、任意の`pipeline:`がある場合はその`names`順に追加します。`pipeline`なしでは定義順を使用します。
+同じ読み込み欄で、REWのCamillaDSP用に保存した`.yml`／`.yaml`を選べます。CamillaDSP本体の設定ファイルは不要です。`filters:`のパラメーター形式と係数形式を読み込み、任意の`pipeline:`がある場合はその`names`順に追加します。`pipeline`なしでは定義順を使用します。
 
 | CamillaDSP形式 | PhaseEQでの扱い |
 |---|---|
@@ -109,8 +109,16 @@ REWの`.req`と`Export filter settings as formatted text`は対象外です。RE
 | `Biquad`: `Allpass`／`AllpassFO` | 手動2次AP／通常の1次AP |
 | `BiquadCombo`: `ButterworthHighpass`／`ButterworthLowpass` | 1〜4次・6次・8次 |
 | `BiquadCombo`: `LinkwitzRileyHighpass`／`LinkwitzRileyLowpass` | 2次・4次・6次・8次 |
+| `DiffEq`: `a`／`b`配列 | 各配列1〜3要素。0〜2次の係数段として保持 |
+| `Biquad`: `Free` | `b0`・`b1`・`b2`・`a1`・`a2`を係数段として保持 |
 
-単一チャンネル・単一Filterステップを扱い、各定義を一度ずつ参照します。REWが出力に含めなかったOFFフィルターは復元しません。読み込む項目はすべてONになります。周波数・ゲイン・Q・合計128件の制限とQの丸めは上記TXTと共通です。複数チャンネル、機器設定付きの完全な構成ファイル、`DiffEq`／`Free`係数、Notch、LinkwitzTransform、bandwidth／slope指定などは対象外です。未対応項目、不正な参照、重複キー、YAML aliasを含む場合は全体を追加せず、既存設定を保持します。
+単一チャンネル・単一Filterステップを扱い、各定義を一度ずつ参照します。REWが出力に含めなかったOFFフィルターは復元しません。読み込む項目はすべてONになります。パラメーター形式の周波数・ゲイン・Q制限とQの丸め、既存項目との合計128件の制限は上記TXTと共通です。複数チャンネル、機器設定付きの完全な構成ファイル、パラメーター形式のNotch、LinkwitzTransform、bandwidth／slope指定などは対象外です。未対応項目、不正な参照、重複キー、YAML aliasを含む場合は全体を追加せず、既存設定を保持します。
+
+係数形式は1段ごとに`Biquad係数`として追加し、a0=1へ正規化します。足りない1次・0次の係数は0で補います。パラメーターへの推定変換やQの丸めを行わず、Gain／Phaseの両画面に表示します。ON／OFF・複製・削除を行えます。係数は直接編集できません。3次以上のDiffEq単独定義、非有限値、a0=0、単位円上または外側に極を持つ段は拒否します。高次HP／LPは、PhaseEQが出力した2次以下の複数段をそのまま読み込みます。
+
+係数には元のFsが必要です。読み込み前にPhaseEQのFsを出力元に合わせてください。新しいStandalone出力とマルチウェイの`filters_phaseeq_iir.yml`／`filters_crossover_iir.yml`にはFsコメントを記録し、不一致時は読み込みを拒否します。Fs情報のない既存ファイルは、読み込み時のFsを保存します。取り込み後のFs変更では有効な係数項目の処理を停止します。元のFsへ戻すか、その項目をOFFにしてください。設定JSONには係数とFsを保存します。この項目を含む設定は対応版のPhaseEQで使用してください。
+
+再出力は`CamillaDSP`ボタンを使い、DiffEq形式へ出力します。Freeとして読み込んだ項目もDiffEqとして出力します。REW TXTでは係数項目を除外し、結果CSVへ理由を記録します。マルチウェイの分離IIR YAMLを読み込む場合は、対象経路だけを残した`filters:`を使用してください。機器・経路・ゲイン・遅延・FIRの設定を含む全体構成は読み込みません。
 
 `AllpassFO`は通常の1次APです。極性反転付き1次APはPhase画面のプリセット`1次AP・極性反転（LR2ハイパス）`で指定します。既存の`lr2_hi`設定と同じ計算・保存形式を使用します。どちらの1次APもREW Generic TXTからは除外され、結果CSVに理由が記録されます。係数を保持して渡す場合はBiquad出力を使用してください。PhaseEQのCamillaDSP出力は従来の`DiffEq`係数形式です。
 

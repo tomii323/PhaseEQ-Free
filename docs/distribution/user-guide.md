@@ -1,12 +1,12 @@
 # PhaseEQ ユーザーガイド
 
 - 文書更新日: 2026-11-14
-- 対象公開版: PhaseEQ v2.0.2
+- 対象公開版: PhaseEQ v2.0.3
 - 文書状態: 現行UIに合わせた操作ガイド
 
 PhaseEQは、スピーカーの測定データから目標特性を決め、IIR／FIRの補正フィルターを作るアプリです。マルチウェイ画面では、各帯域の設計、チャンネルの合成、位相・時間整合を行います。マルチウェイの実機DSP用パッケージはProで出力できます。
 
-本書は日本語表示を基準に、現在の操作を説明します。英語名称そのものを説明する箇所では英語表記を保持し、必要に応じて日本語の意味を添えます。グラフの凡例や出力形式など、画面に英語で表示される名称はそのまま記載します。更新内容は[更新履歴](history.md)、今回の変更点は[v2.0.2 更新案内](release-notes-v2.0.2.md)にまとめています。
+本書は日本語表示を基準に、現在の操作を説明します。英語名称そのものを説明する箇所では英語表記を保持し、必要に応じて日本語の意味を添えます。グラフの凡例や出力形式など、画面に英語で表示される名称はそのまま記載します。更新内容は[更新履歴](history.md)、今回の変更点は[v2.0.3 更新案内](release-notes-v2.0.3.md)にまとめています。
 
 マルチウェイの設計からDSP出力までの手順は[簡易操作マニュアル（15ページPDF）](manual/PhaseEQ_Multiway_QuickGuide_15p_Dark_JA.pdf)にまとめています。PhaseEQの「共通設定」、マルチウェイのサイドバー「設定」から同梱PDFをダウンロードできます。
 
@@ -857,7 +857,7 @@ IIRはFIR係数へ畳み込まれません。後段DSPでは、IIRとFIRを設�
 
 REWでEqualiserを`Generic`にし、`Export filter settings as text`で保存します。PhaseEQの`IIR EQ → REW IIRの読み込み`でファイルを選び、種類・次数・各値・ON／OFFを確認して`IIRを末尾へ追加`を押します。PEQ・Shelf・HP／LP・2次All PassをManual IIRとして追加し、既存フィルターを保持します。All PassはPhase画面で編集します。PEQ・Shelf・All PassのQは0.1刻みへ丸めます。未対応種類や範囲外の値を含むファイルは追加しません。
 
-REWのCamillaDSP用YAML（`.yml`／`.yaml`）も同じ欄で読み込めます。CamillaDSP本体の設定ファイルは不要です。単一チャンネルのパラメータ形式を対象とし、通常の1次AP `AllpassFO`にも対応します。対応する種類・次数と制限は[CamillaDSP用YAMLの読み込み](output-format.md#camilladsp用yamlの読み込み)を参照してください。極性反転付き1次APは、Phase画面で`1次AP・極性反転（LR2ハイパス）`を選びます。旧`LR2ハイパスに合わせる`と同じ設定です。
+REWのCamillaDSP用YAML（`.yml`／`.yaml`）も同じ欄で読み込めます。CamillaDSP本体の設定ファイルは不要です。単一チャンネルのパラメーター形式と、PhaseEQの出力するDiffEq／Free係数形式を扱います。係数形式は元のFsに合わせて読み込み、`Biquad係数`として保持します。通常の1次AP `AllpassFO`にも対応します。対応する種類・次数と制限は[CamillaDSP用YAMLの読み込み](output-format.md#camilladsp用yamlの読み込み)を参照してください。極性反転付き1次APは、Phase画面で`1次AP・極性反転（LR2ハイパス）`を選びます。旧`LR2ハイパスに合わせる`と同じ設定です。
 
 出力はIIR EQ画面または「書き出し」の`REW IIR (.txt)`を使います。HP／LPはButterworth・Besselの1〜4次・6次・8次とLinkwitz-Rileyの2次・4次・6次・8次を扱います。8次以上も4次以下の段を組み合わせる方針で、現在の編集上限は8次です。REW出力では1次／2次段へ展開するため、再読み込み後の件数と編集単位が変わる場合があります。1次All Passなど、REWで表現できない項目は除外し、書き出し可能な項目だけを出力します。`REW IIR 出力結果 (.csv)`で全項目の設定値・出力Filter番号・成否・エラー理由を保存できます。全件が対象外の場合はCSVだけを出力します。除外項目が必要な場合はBiquad出力を使用してください。対応形式・Q範囲・対象外設定は[出力ファイル仕様](output-format.md#rew-peqテキスト)を参照してください。
 
@@ -2724,7 +2724,7 @@ LR4 FIRはLP／HPの5 Hz〜ナイキスト周波数のうち、目標振幅−10
 - [利用者向けドキュメント一覧](README.md)
 - [インストールガイド](installation.md)
 - [更新履歴](history.md)
-- [v2.0.2 更新案内](release-notes-v2.0.2.md)
+- [v2.0.3 更新案内](release-notes-v2.0.3.md)
 - [出力ファイル仕様](output-format.md)
 - [プロジェクトREADME](../../README.md)
 

@@ -2227,6 +2227,8 @@ FILTER_REGISTRY_ADAPTERS: dict[str, dict[str, Any]] = {
             "filter_order": ("order_value", 2),
             "allpass_preset": ("allpass_preset", "manual"),
             "origin": ("origin", "manual"),
+            "coefficients": ("coefficients", []),
+            "coefficient_sample_rate": ("coefficient_sample_rate", 0),
         },
     },
     "gain_peq_items": {
@@ -7110,6 +7112,8 @@ def _tilt_title(label: str, idx: int, prefix: str, unit: str, item: dict[str, An
 
 
 def _filter_overview_value(item: dict[str, Any]) -> str:
+    if item.get("kind") == "biquad":
+        return "SOS"
     if "gain_db" in item:
         return f"{float(item.get('gain_db', 0.0)):+.1f} dB"
     if "phase_deg" in item:
@@ -7250,7 +7254,7 @@ def _render_filter_overview_selector(
             "ON": bool(item.get("enabled", True)),
             "Type": filter_type,
             "Phase": _filter_phase_abbreviation(prefix, item),
-            "Frequency": frequency,
+            "Frequency": "-" if item.get("kind") == "biquad" else frequency,
             "Value": _filter_overview_value(item),
         }
         if include_q:
@@ -7298,6 +7302,8 @@ def _render_filter_overview_selector(
 
 def _filter_phase_abbreviation(prefix: str, item: dict[str, Any]) -> str:
     """Describe the realization phase family without changing filter behavior."""
+    if item.get("kind") == "biquad":
+        return "-"
     if prefix in {"iir_filter", "target_iir_filter"}:
         return "Max." if str(item.get("kind", "")) == "allpass" else "Min."
     return "Lin."
@@ -8983,6 +8989,7 @@ IIR_KIND_LABELS = {
     "allpass": "All Pass",
     "high_pass": "High Pass",
     "low_pass": "Low Pass",
+    "biquad": "Biquad coefficients",
 }
 IIR_LABEL_KINDS = {label: kind for kind, label in IIR_KIND_LABELS.items()}
 IIR_FAMILY_LABELS = {
@@ -9141,7 +9148,7 @@ def _iir_result_rows(filters: list[IIRFilter], *, origin: str | None = None) -> 
                 "#": f"{origin_label} {kind_label}{identity_counts[identity_key]}",
                 "ON": bool(item.enabled),
                 "Type": IIR_KIND_LABELS.get(item.kind, item.kind),
-                "Frequency": f"{item.fc:.0f} Hz",
+                "Frequency": "-" if item.kind == "biquad" else f"{item.fc:.0f} Hz",
                 "Q": (
                     _iir_overview_q(
                         {
@@ -9190,6 +9197,8 @@ def _iir_registry_payload(item: IIRFilter) -> dict[str, Any]:
         "ripple_db": float(item.ripple_db),
         "stop_db": float(item.stop_db),
         "lobe_height_db": float(item.lobe_height_db),
+        "coefficients": list(item.coefficients or ()),
+        "coefficient_sample_rate": item.coefficient_sample_rate,
         "filter_order": int(item.order),
         "allpass_preset": str(item.allpass_preset),
         "origin": str(item.origin),
@@ -9299,7 +9308,7 @@ def _render_iir_biquad_downloads(
 
 def _render_rew_iir_import(nyquist: float, sample_rate: int) -> None:
     with st.expander(ui_message('ui.179a2c66a6ce70')):
-        st.caption(ui_message('ui.b5fc7262b7c7fd'))
+        st.caption(ui_message('ui.a4f1d5afffb9ca'))
         uploaded = st.file_uploader(ui_message('ui.b6396dff2ed638'), type=["txt", "yaml", "yml"], key="iir_rew_peq_file")
         if uploaded is None:
             return
@@ -9312,8 +9321,15 @@ def _render_rew_iir_import(nyquist: float, sample_rate: int) -> None:
         except (ValueError, UnicodeError) as exc:
             st.error(ui_message('ui.c1710972b6cece', p0=str(exc)))
             return
-        st.dataframe([{"Type": IIR_KIND_LABELS[item.kind], "ON": item.enabled, "Frequency Hz": item.fc, "Gain dB": item.gain_db, "Q": item.q, "Order": item.order}
-                      for item in imported], hide_index=True)
+        st.dataframe([
+            {"Type": IIR_KIND_LABELS[item.kind], "ON": item.enabled,
+             "Frequency Hz": "-" if item.kind == "biquad" else str(item.fc),
+             "Gain dB": "-" if item.kind == "biquad" else str(item.gain_db),
+             "Q": "-" if item.kind == "biquad" else str(item.q),
+             "Order": "-" if item.kind == "biquad" else str(item.order),
+             "SOS": str(item.coefficients) if item.kind == "biquad" else "-"}
+            for item in imported
+        ], hide_index=True)
         if localized_button(st, ui_message('ui.966761398613e4'), key="iir_rew_peq_append"):
             _set_registry_items("iir_filter_items", [_iir_registry_payload(item) for item in [*current, *imported]])
             st.session_state.pop("_iir_auto_diagnostics", None)
@@ -9325,9 +9341,9 @@ def _render_rew_iir_import(nyquist: float, sample_rate: int) -> None:
 def _render_iir_editor(nyquist: float, sample_rate: int, *, view: str) -> list[IIRFilter]:
     list_key, _spec, items = _indexed_group_registry_items("iir_filter")
     visible_kinds = (
-        ("peq", "high_shelf", "low_shelf", "high_pass", "low_pass")
+        ("peq", "high_shelf", "low_shelf", "high_pass", "low_pass", "biquad")
         if view == "Gain"
-        else ("allpass",)
+        else ("allpass", "biquad")
     )
     rows = [
         (
@@ -9345,7 +9361,7 @@ def _render_iir_editor(nyquist: float, sample_rate: int, *, view: str) -> list[I
     with control_cols[1]:
         add_type = selectbox_indexed(
             ui_message('ui.e520df698000f8'),
-            [IIR_KIND_LABELS[kind] for kind in visible_kinds],
+            [IIR_KIND_LABELS[kind] for kind in visible_kinds if kind != "biquad"],
             settings_key="iir_eq_add_type",
             default="PEQ",
             key="iir_eq_add_type_widget",
@@ -9398,29 +9414,35 @@ def _render_iir_editor(nyquist: float, sample_rate: int, *, view: str) -> list[I
             base_cols = st.columns([0.14, 0.38, 0.48], gap="small")
             with base_cols[0]:
                 enabled = _registry_checkbox(ui_message('ui.e8a01133b1351e'), list_key=list_key, item=item, field="enabled", default=True)
-            with base_cols[1]:
-                kind = _registry_selectbox(
-                    "IIR type",
-                    list(visible_kinds),
-                    list_key=list_key,
-                    item=item,
-                    field="kind",
-                    default=kind,
-                    labels=[IIR_KIND_LABELS[value] for value in visible_kinds],
-                    help="IIRフィルターの種類です。",
-                )
-            with base_cols[2]:
-                _registry_number_input(
-                    "Frequency Hz",
-                    list_key=list_key,
-                    item=item,
-                    field="fc",
-                    min_value=1.0,
-                    max_value=max(nyquist - 1.0, 1.0),
-                    default=1000.0,
-                    step=1.0,
-                    format="%.0f",
-                )
+            if kind == "biquad":
+                with base_cols[1]:
+                    st.write(display_text("Biquad coefficients"))
+                with base_cols[2]:
+                    st.caption(ui_message("ui.1e60b68259d7a7", p0=item.get("coefficient_sample_rate")))
+            else:
+                with base_cols[1]:
+                    kind = _registry_selectbox(
+                        "IIR type",
+                        [value for value in visible_kinds if value != "biquad"],
+                        list_key=list_key,
+                        item=item,
+                        field="kind",
+                        default=kind,
+                        labels=[IIR_KIND_LABELS[value] for value in visible_kinds if value != "biquad"],
+                        help="IIRフィルターの種類です。",
+                    )
+                with base_cols[2]:
+                    _registry_number_input(
+                        "Frequency Hz",
+                        list_key=list_key,
+                        item=item,
+                        field="fc",
+                        min_value=1.0,
+                        max_value=max(nyquist - 1.0, 1.0),
+                        default=1000.0,
+                        step=1.0,
+                        format="%.0f",
+                    )
             if kind in {"peq", "high_shelf", "low_shelf"}:
                 quantized_q = quantize_iir_q(
                     kind,
@@ -9454,6 +9476,9 @@ def _render_iir_editor(nyquist: float, sample_rate: int, *, view: str) -> list[I
                         step=0.1,
                         format="%.1f",
                     )
+            elif kind == "biquad":
+                st.caption(ui_message("ui.7391e2803fec2d"))
+                st.dataframe([dict(zip(("b0", "b1", "b2", "a0", "a1", "a2"), item.get("coefficients", ())))], hide_index=True)
             elif kind == "allpass":
                 _render_iir_allpass_controls(
                     list_key=list_key,
@@ -11639,7 +11664,7 @@ def _collect_iir_state(nyquist: float) -> list[IIRFilter]:
             order = 2
         filters.append(
             IIRFilter(
-                kind=kind if kind in {"peq", "high_shelf", "low_shelf", "allpass", "high_pass", "low_pass"} else "peq",
+                kind=kind if kind in {"peq", "high_shelf", "low_shelf", "allpass", "high_pass", "low_pass", "biquad"} else "peq",
                 fc=min(max(float(item.get("fc", 1000.0)), 1.0), max(nyquist - 1.0, 1.0)),
                 q=(float(item.get("q", 0.7071)) if item.get("family") == "variable_q" else quantize_iir_q(kind, float(item.get("q", 0.7)))),
                 gain_db=float(item.get("gain_db", 0.0)),
@@ -11647,6 +11672,8 @@ def _collect_iir_state(nyquist: float) -> list[IIRFilter]:
                 ripple_db=float(item.get("ripple_db", 0.1)),
                 stop_db=float(item.get("stop_db", 80.0)),
                 lobe_height_db=float(item.get("lobe_height_db", -36.0)),
+                coefficients=tuple(item.get("coefficients") or ()),
+                coefficient_sample_rate=item.get("coefficient_sample_rate", 0),
                 order=order,
                 allpass_preset=(
                     str(item.get("allpass_preset", "manual"))
@@ -11901,6 +11928,8 @@ def _sync_iir_registry(filters: list[IIRFilter]) -> None:
                 "ripple_db": float(item.ripple_db),
                 "stop_db": float(item.stop_db),
                 "lobe_height_db": float(item.lobe_height_db),
+                "coefficients": list(item.coefficients or ()),
+                "coefficient_sample_rate": item.coefficient_sample_rate,
                 "filter_order": int(item.order),
                 "allpass_preset": str(item.allpass_preset),
                 "origin": str(item.origin),
@@ -11916,7 +11945,7 @@ def _sync_iir_registry(filters: list[IIRFilter]) -> None:
         settings_key="iir_filter_items",
         item_type="iir_filter",
         label="IIR EQ",
-        fields=("enabled", "kind", "fc", "q", "gain_db", "family", "ripple_db", "stop_db", "lobe_height_db", "order", "allpass_preset", "origin"),
+        fields=("enabled", "kind", "fc", "q", "gain_db", "family", "ripple_db", "stop_db", "lobe_height_db", "order", "allpass_preset", "origin", "coefficients", "coefficient_sample_rate"),
         path=("IIR EQ",),
     )
 

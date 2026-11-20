@@ -389,6 +389,9 @@ def design_iir_sos(item: IIRFilter, sample_rate: int) -> np.ndarray:
     """Return SciPy SOS rows using H(z)=B(z)/(1+a1*z^-1+a2*z^-2)."""
     if not item.enabled:
         return np.empty((0, 6), dtype=float)
+    if item.kind == "biquad":
+        from .iir_coefficients import coefficient_sos
+        return coefficient_sos(item.coefficients, item.coefficient_sample_rate, sample_rate)
     if item.kind == "allpass" and item.allpass_preset != "manual":
         preset = str(item.allpass_preset)
         if preset == "ntm4":
@@ -4355,14 +4358,14 @@ def export_iir_parameter_document(filters: Iterable[IIRFilter], sample_rate: int
             + " | ".join((
                 str(apply_order),
                 str(item.kind),
-                f"{float(item.fc):.10g}",
-                f"{float(item.gain_db):.10g}",
-                "-" if item.family == "ntm4" or item.allpass_preset == "ntm4" else f"{float(item.q):.10g}",
-                str(int(item.order)),
+                "-" if item.kind == "biquad" else f"{float(item.fc):.10g}",
+                "-" if item.kind == "biquad" else f"{float(item.gain_db):.10g}",
+                "-" if item.kind == "biquad" or item.family == "ntm4" or item.allpass_preset == "ntm4" else f"{float(item.q):.10g}",
+                "-" if item.kind == "biquad" else str(int(item.order)),
                 "Yes" if item.enabled else "No",
-                str(item.family),
+                "-" if item.kind == "biquad" else str(item.family),
                 str(item.origin),
-                str(item.allpass_preset),
+                "-" if item.kind == "biquad" else str(item.allpass_preset),
                 f"{item.lobe_height_db:.10g}" if item.family == "ntm4" or item.allpass_preset == "ntm4" else "-",
             ))
             + " |"
@@ -4373,13 +4376,19 @@ def export_iir_parameter_document(filters: Iterable[IIRFilter], sample_rate: int
         "",
         "## Notes",
         "",
-        "- Type values: `peq`, `high_shelf`, `low_shelf`, `allpass`, `high_pass`, `low_pass`.",
+        "- Type values: `peq`, `high_shelf`, `low_shelf`, `allpass`, `high_pass`, `low_pass`, `biquad`.",
         "- Enter the filters into the destination DSP in Apply order.",
         "- A destination DSP may use different Shelf-Q, crossover-family, or All-pass conventions. Verify the realized response after entry.",
         "- The table above contains design parameters, not Biquad coefficients.",
         "- NTM4 uses Fc and Lobe Height; Q is derived. Use the exported SOS if the destination has no NTM4 mode.",
         "",
     ])
+    coefficient_items = [item for item in items if item.kind == "biquad"]
+    if coefficient_items:
+        lines.extend(["", "## Imported Biquad coefficients", "",
+                      "Retain these coefficients; no frequency/Q parameters are inferred.", "```json",
+                      json.dumps([{"enabled": item.enabled, "sample_rate_hz": item.coefficient_sample_rate, "sos": item.coefficients}
+                                  for item in coefficient_items], indent=2), "```"])
     if np.asarray(extra_sos).size:
         lines.extend(["", "## Output alignment Biquads", "",
                       "Apply these coefficients after the parameter filters. Polarity is included once.",

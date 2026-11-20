@@ -88,6 +88,8 @@ def import_rew_filters(text: str, sample_rate: int) -> list[IIRFilter]:
 
 def _sections(item: IIRFilter, sample_rate: int | None) -> list[IIRFilter]:
     """Expand compound prototypes through the existing coefficient owner."""
+    if item.kind == "biquad":
+        raise ValueError("Biquad係数はREWパラメータ形式の対象外です。Biquad出力を使用してください。")
     if item.kind not in {"high_pass", "low_pass", "allpass"}:
         return [item]
     if item.kind == "allpass":
@@ -211,12 +213,13 @@ def export_rew_result_csv(result: RewExportResult) -> str:
     writer.writerow(['元IIR番号', '種類', 'ON/OFF', '周波数Hz', 'ゲインdB', 'Q',
                      'Family', '次数', 'All Pass preset', '結果', '出力Filter番号', 'エラー'])
     labels = {'peq': 'PEQ', 'low_shelf': 'Low Shelf', 'high_shelf': 'High Shelf',
-              'high_pass': 'HP', 'low_pass': 'LP', 'allpass': 'All Pass'}
+              'high_pass': 'HP', 'low_pass': 'LP', 'allpass': 'All Pass', 'biquad': 'Biquad係数'}
     for entry in result.entries:
         item = entry.item
         writer.writerow([entry.source_index, labels.get(item.kind, item.kind),
-                         'ON' if item.enabled else 'OFF', item.fc, item.gain_db, item.q,
-                         item.family, item.order, item.allpass_preset,
+                         'ON' if item.enabled else 'OFF',
+                         *([''] * 6 if item.kind == 'biquad' else
+                           [item.fc, item.gain_db, item.q, item.family, item.order, item.allpass_preset]),
                          'エラー・出力対象外' if entry.error else '出力',
                          ';'.join(map(str, entry.filter_numbers)), entry.error])
     return '\ufeff' + output.getvalue()

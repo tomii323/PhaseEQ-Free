@@ -144,7 +144,7 @@ class GainLinearFilter:
 
 @dataclass(frozen=True)
 class IIRFilter:
-    kind: Literal["peq", "high_shelf", "low_shelf", "allpass", "high_pass", "low_pass"] = "peq"
+    kind: Literal["peq", "high_shelf", "low_shelf", "allpass", "high_pass", "low_pass", "biquad"] = "peq"
     fc: float = 1000.0
     q: float = 0.7071
     gain_db: float = 0.0
@@ -156,8 +156,17 @@ class IIRFilter:
     ripple_db: float = 0.1
     stop_db: float = 80.0
     lobe_height_db: float = -36.0
+    coefficients: tuple[float, ...] | None = None
+    coefficient_sample_rate: int = 0
 
     def __post_init__(self) -> None:
+        if self.kind == "biquad":
+            from .iir_coefficients import coefficient_sos
+            row = coefficient_sos(self.coefficients, self.coefficient_sample_rate, self.coefficient_sample_rate)[0]
+            object.__setattr__(self, "coefficients", tuple(float(v) for v in row))
+        else:
+            object.__setattr__(self, "coefficients", None)
+            object.__setattr__(self, "coefficient_sample_rate", 0)
         if (self.kind in {"high_pass", "low_pass"} and self.family == "ntm4") or (
             self.kind == "allpass" and self.allpass_preset == "ntm4"
         ):
@@ -524,6 +533,11 @@ class DesignConfig:
             if item.beta < 0:
                 raise ValueError("gain linear beta must be >= 0")
         for item in self.iir_filters:
+            if item.kind == "biquad":
+                if item.enabled:
+                    from .iir_coefficients import coefficient_sos
+                    coefficient_sos(item.coefficients, item.coefficient_sample_rate, self.sample_rate)
+                continue
             if item.kind not in ("peq", "high_shelf", "low_shelf", "allpass", "high_pass", "low_pass"):
                 raise ValueError("unsupported IIR filter type")
             if item.fc <= 0 or item.fc >= self.sample_rate / 2:
@@ -763,6 +777,8 @@ def _clip_gain_linear(item: GainLinearFilter, sample_rate: int) -> GainLinearFil
 
 
 def _clip_iir_filter(item: IIRFilter, sample_rate: int) -> IIRFilter:
+    if item.kind == "biquad":
+        return item
     kind = item.kind if item.kind in ("peq", "high_shelf", "low_shelf", "allpass", "high_pass", "low_pass") else "peq"
     family = item.family if item.family in ("linkwitz_riley", "bessel", "butterworth", "variable_q", "elliptic", "ntm4") else "butterworth"
     allpass_preset = (
