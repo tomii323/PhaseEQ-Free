@@ -1,7 +1,7 @@
 # PhaseEQ 出力ファイル仕様
 
 - 文書更新日: 2026-11-14
-- 対象公開版: PhaseEQ v2.0.1
+- 対象公開版: PhaseEQ v2.0.2
 - 文書状態: 現行仕様と15ページ簡易操作マニュアルに対応
 
 PhaseEQの「書き出し」、マルチウェイの「保存・出力」、PhaseEQの「設定 → バックアップと復元」で保存できるファイルを説明します。操作順は[操作ガイド](user-guide.md)、過去の変更は[更新履歴](history.md)を参照してください。
@@ -33,7 +33,7 @@ Pro専用のC-DSP 8x12 DL向けZIPは、Pre/PostのXover係数、チャンネル
 | 目標応答 | 目標応答の受け渡し | いいえ |
 | IIR バイクアッド | 外部DSPへのIIR実装 | いいえ |
 | Generic IIR Parameters | バイクアッドを直接入力できないIIR-only DSPへの設計値転記 | いいえ |
-| REW PEQ (.txt) | REW Generic形式のPEQ設定の受け渡し | IIR PEQのみ読み込み可能 |
+| REW IIR (.txt) | REW Generic形式のIIR設定の受け渡し | 下記の対応形式を読み込み可能 |
 | FIR coefficients / WAV | 畳み込みエンジンへのFIR実装 | いいえ |
 | システム プリセット JSON | DSPシステム設定の保存・再利用 | はい |
 | DSP Configuration Package ZIP | Device別の実装ファイル一式 | いいえ |
@@ -73,13 +73,48 @@ PhaseEQ 書き出しではIIRイコライザー、出力帯域分割ページ、
 
 ## REW PEQテキスト
 
-`IIR EQ`のGain画面と「書き出し」のIIR EQ出力にある`REW PEQ (.txt)`で、手動・自動のPEQを現在の順序とON／OFF状態で保存します。各行は`Filter 1: ON PK Fc 100 Hz Gain -3 dB Q 1`の形式です。Shelf・HP／LP・All Pass・FIR・出力ゲイン／Delay／極性は対象外です。
+`IIR EQ`のGain／Phase画面と「書き出し」のIIR EQ出力にある`REW IIR (.txt)`で、手動・自動IIRを現在の順序とON／OFF状態で保存します。PEQに加えてShelf・HP／LP・2次All Passを扱います。
 
-読み込みは`IIR EQ → Gain → REW PEQの読み込み`から行います。REWのEqualiserを`Generic`にし、`Export filter settings as text`で保存したファイルを選びます。プレビューを確認して`PEQを末尾へ追加`を押すと、現在編集中のIIR一覧へManual PEQとして追加します。既存IIRは保持し、`None`行は読み飛ばします。
+読み込みは`IIR EQ → REW IIRの読み込み`から行います。REWのEqualiserを`Generic`にし、`Export filter settings as text`で保存したファイルを選びます。種類・次数・周波数・ゲイン・Q・ON／OFFのプレビューを確認し、`IIRを末尾へ追加`を押します。既存IIRを保持し、Manual IIRとして追加します。All Passの編集はPhase画面で行います。`None`行は読み飛ばします。
 
-既存の編集範囲に合わせ、周波数は1 Hz〜Nyquist−1 Hz、ゲインは−30〜+20 dB、Qは0.1〜5とします。Qは0.1刻みへ丸めるため、追加前にプレビューのQを確認してください。範囲外、未対応フィルター種類、不正な行、件数上限超過がある場合は、ファイル全体を追加せず設定を保持します。
+| REWの種類 | 読み込み先・条件 |
+|---|---|
+| `PK` | PEQ、Q 0.1〜5 |
+| `LS`／`HS` | Low／High Shelf、固定Q≈0.7071を既存の0.1刻みへ丸めます |
+| `LS Q`／`HS Q`（`LSQ`／`HSQ`も可） | Low／High Shelf、Q 0.1〜1 |
+| `HP`／`LP` | 2次Butterworth HP／LP |
+| `HP1`／`LP1` | 1次Butterworth HP／LP |
+| `HP Q`／`LP Q`（`HPQ`／`LPQ`も可） | 2次Variable-Q HP／LP、Q 0.01〜100。Qの丸めは行いません |
+| `All pass`／`AP` | 手動2次All Pass、Q 0.1〜100 |
 
-REWの`.req`と`Export filter settings as formatted text`は対象外です。REW自身のフィルター保存・復元には`.req`を使います（[REW公式File Menu](https://www.roomeqwizard.com/help/help_en-GB/html/file.html)）。外部ソフト・DSPへ渡す場合は、取込後に周波数・ゲイン・Q・ON／OFFと実現応答を確認してください。
+周波数は1 Hz〜Nyquist−1 Hz、ゲインは−30〜+20 dBとします。PEQ・Shelf・All PassのQは既存編集仕様の0.1刻みへ丸めるため、元の応答と差が生じる場合があります。追加後の合計は既存IIRを含め128件までです。範囲外、未対応種類、不正な行、フィルター番号重複、件数上限超過がある場合はファイル全体を追加せず設定を保持します。UTF-8（BOM付きも可）を読み込みます。
+
+出力ではShelfを`LS Q`／`HS Q`、2次HP／LPを`HP Q`／`LP Q`として保存します。Butterworth・BesselのHP／LPは1〜4次・6次・8次、Linkwitz-Rileyは2次・4次・6次・8次を扱います。4次は2次段×2、8次は2次段×4として、既存係数計算から出力用の段を作り、合成応答を照合します。8次以上も4次以下の段を組み合わせる方針で、REW TXTでは1次／2次段を使用します。現在の編集上限は8次です。各段の周波数とQは元の係数から求め、同じFamily・周波数の4次フィルターを単純に重ねる処理は行いません。対応可能なAll Passプリセットも2次段へ展開します。再読み込み後は各段が独立したManual IIRとなり、元のFamily・プリセット・Autoの由来は復元しません。All Pass段のQも読み込み時の丸め対象です。
+
+特殊なShelf傾斜（`LS 6dB`／`HS 6dB`／`LS 12dB`／`HS 12dB`）、1次All Pass（`AP 1`／`AP 1 inv`を含む）、Elliptic／NTM4のHP／LP、専用クロスオーバー行、Generic以外のEqualiserは対象外です。出力一覧に表現できないフィルターがある場合は、その項目を除外して書き出し可能な項目だけを出力します。複数段へ展開する項目は、全段を出力できる場合だけ含めます。OFFの項目も同じ判定を行います。FIR・出力ゲイン／Delay／極性・独立した帯域分割は含みません。
+
+`REW IIR 出力結果 (.csv)`は、元IIR番号・種類・設定値・ON／OFF・出力Filter番号・成否・エラー理由を別ファイルに保存します。対象外の項目は出力Filter番号が空欄です。全件が対象外の場合はCSVだけを出力します。CSVを確認し、必要な項目はBiquad出力を使用してください。
+
+REWの`.req`と`Export filter settings as formatted text`は対象外です。REW自身のフィルター保存・復元には`.req`を使います（[REW公式File Menu](https://www.roomeqwizard.com/help/help_en-GB/html/file.html)）。外部ソフト・DSPへ渡す場合は、受信側が対応する種類・段数・周波数・Qの範囲を確認し、取込後の各値・ON／OFFと実現応答を確認してください。
+
+### CamillaDSP用YAMLの読み込み
+
+同じ読み込み欄で、REWのCamillaDSP用に保存した`.yml`／`.yaml`を選べます。CamillaDSP本体の設定ファイルは不要です。`filters:`のパラメータ形式を読み込み、任意の`pipeline:`がある場合はその`names`順に追加します。`pipeline`なしでは定義順を使用します。
+
+| CamillaDSP形式 | PhaseEQでの扱い |
+|---|---|
+| `Biquad`: `Peaking`／`Lowshelf`／`Highshelf` | PEQ／Shelf、`q`と`gain`を指定 |
+| `Biquad`: `Highpass`／`Lowpass` | 2次Variable-Q HP／LP |
+| `Biquad`: `HighpassFO`／`LowpassFO` | 1次Butterworth HP／LP |
+| `Biquad`: `Allpass`／`AllpassFO` | 手動2次AP／通常の1次AP |
+| `BiquadCombo`: `ButterworthHighpass`／`ButterworthLowpass` | 1〜4次・6次・8次 |
+| `BiquadCombo`: `LinkwitzRileyHighpass`／`LinkwitzRileyLowpass` | 2次・4次・6次・8次 |
+
+単一チャンネル・単一Filterステップを扱い、各定義を一度ずつ参照します。REWが出力に含めなかったOFFフィルターは復元しません。読み込む項目はすべてONになります。周波数・ゲイン・Q・合計128件の制限とQの丸めは上記TXTと共通です。複数チャンネル、機器設定付きの完全な構成ファイル、`DiffEq`／`Free`係数、Notch、LinkwitzTransform、bandwidth／slope指定などは対象外です。未対応項目、不正な参照、重複キー、YAML aliasを含む場合は全体を追加せず、既存設定を保持します。
+
+`AllpassFO`は通常の1次APです。極性反転付き1次APはPhase画面のプリセット`1次AP・極性反転（LR2ハイパス）`で指定します。既存の`lr2_hi`設定と同じ計算・保存形式を使用します。どちらの1次APもREW Generic TXTからは除外され、結果CSVに理由が記録されます。係数を保持して渡す場合はBiquad出力を使用してください。PhaseEQのCamillaDSP出力は従来の`DiffEq`係数形式です。
+
+形式の原典は[REW Equaliser](https://www.roomeqwizard.com/betahelp/help/html/equaliser.html)と[CamillaDSP IIR仕様](https://github.com/HEnquist/camilladsp#iir)です。REWのCamillaDSP出力で1次APを保存できることは未確認です。標準`AllpassFO`の読み込み対応と区別します。
 
 ## FIR
 
@@ -139,6 +174,10 @@ PhaseEQ同梱マルチウェイ Studioの`DSP 書き出し v3`は、上記PhaseE
 | SigmaStudio | FIR float／5.23、General 2nd 次数係数 float／5.23、Block map、チャンネル設定 |
 | Generic SOS | PhaseEQ IIR、Baffle IIR、IIR クロス、補償オールパスを別CSVにした標準SOS出力 |
 | Generic Parameters | IIR-only機器向けPhaseEQ `type / Hz / dB / Q` CSVとクロス／オールパス JSON。FIR非対応、整数遅延前提 |
+
+CamillaDSPのCanonical出力は`F32_LE`のStdin／Stdoutを含みます。実際の音声機器で使う場合は`devices`を対象環境に合わせ、係数フォルダーを保った状態で`camilladsp --check camilladsp.yml`を実行してください。DSP System側のYAMLはFilter／Mixer／pipelineのsnippetなので、別途`devices`設定が必要です。
+
+Canonicalの小数サンプルDelayはCamillaDSPのAP近似を使用します。高域では理想的な時間シフトとの差が生じる場合があります。4.1.3では0.1 samples未満のsubsample Delayは無視されます。DSP System側は整数サンプルへ丸めます。形式・適用範囲は[CamillaDSPのDelay仕様](https://github.com/HEnquist/camilladsp/blob/v4.1.3/README.md#delay)と[実装上の微小遅延の条件](https://github.com/HEnquist/camilladsp/blob/v4.1.3/src/filters/basicfilters.rs)で確認できます。
 
 Proの`作業バックアップ`（内部形式：DSP package + Resume v2）と`実機DSP用パッケージ`（内部形式：DSP 書き出し v3）は目的とVersion体系が異なります。前者は作業継続、後者は後段DSPへの投入が主目的で、相互のVersion番号を読み替えません。DSP 書き出し v3にも`configuration/workspace.json`が含まれるため、マルチウェイ Studioの区間 7「設定ファイルを読み込む／作業を再開」で読み込めます。読込前にパスとSHA-256を検証し、初期のv3で表示選択値が欠けている場合は、保存されたモノラル／ステレオのチャンネル構成からMainまたはL+Rへ安全に補完します。
 

@@ -4,6 +4,12 @@ PhaseEQ Free／Proの変更を、初版の v2.0.0 から記録します。分離
 
 ## 未リリース
 
+## v2.0.2 - 2026-11-20
+
+- REW Generic TXTをShelf・HP／LP・2次All Passへ拡張し、高次HP／LPの段展開、対応項目だけの出力、全項目の結果CSVを追加する。
+- REWのCamillaDSP用パラメータYAMLの読み込みに対応し、通常／極性反転付き1次APの表示を明確化する。
+- CamillaDSP入出力を独立モジュールへ分離する。マルチウェイの音声形式名、Mute・未接続、チャンネル数、小数サンプルDelay、名前衝突と不正入力の検証を修正する。
+
 ## v2.0.1 - 2026-11-19
 
 - REW Generic形式のPEQテキスト読み込みと、REW形式の`.txt`出力を追加する。既存IIRを保持してManual PEQを末尾へ追加し、PEQの順序とON／OFFを保存する。

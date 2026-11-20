@@ -504,39 +504,30 @@
     "ja": "1次オールパス · Fcで−90° · SOS 1段",
     "en": "1st-order All Pass · −90° at Fc · 1 SOS section"
   },
-  "ui.3ddcc61f458c55": {
-    "source": "REW PEQ (.txt)",
-    "ja": "REW PEQ (.txt)",
-    "en": "REW PEQ (.txt)"
+  "ui.6ef8dc0985e1ad": {
+    "source": "REW IIR (.txt)",
+    "ja": "REW IIR (.txt)",
+    "en": "REW IIR (.txt)"
   },
-  "ui.1a0c8e9d8d177f": {
-    "source": "REW PEQの読み込み", "ja": "REW PEQの読み込み", "en": "Import REW PEQ"
+  "ui.179a2c66a6ce70": {
+    "source": "REW IIRの読み込み",
+    "ja": "REW IIRの読み込み",
+    "en": "Import REW IIR"
   },
-  "ui.303862eaf0fad8": {
-    "source": "REWフィルター設定 (.txt)", "ja": "REWフィルター設定 (.txt)", "en": "REW filter settings (.txt)"
+  "ui.966761398613e4": {
+    "source": "IIRを末尾へ追加",
+    "ja": "IIRを末尾へ追加",
+    "en": "Append IIR filters"
   },
-  "ui.9bd92c3d185cc0": {
-    "source": "REWでEqualiserをGenericにし、Export filter settings as textで保存します。PK（PEQ）のON／OFFに対応し、Noneは読み飛ばします。確認後、既存IIRの末尾へManual PEQとして追加します。Qは既存仕様の0.1刻みに丸めます（0.1〜5）。周波数・ゲインの範囲外や他のフィルター種類を含む場合は読み込みません。追加前に一覧のQとON／OFFを確認してください。",
-    "ja": "REWでEqualiserをGenericにし、Export filter settings as textで保存します。PK（PEQ）のON／OFFに対応し、Noneは読み飛ばします。確認後、既存IIRの末尾へManual PEQとして追加します。Qは既存仕様の0.1刻みに丸めます（0.1〜5）。周波数・ゲインの範囲外や他のフィルター種類を含む場合は読み込みません。追加前に一覧のQとON／OFFを確認してください。",
-    "en": "In REW, select Generic and use Export filter settings as text. PK (PEQ) ON/OFF states are supported; None rows are skipped. After review, append as Manual PEQs to the existing IIR list. Q is rounded to the existing 0.1 grid (0.1–5). Out-of-range frequency/gain or other filter types block import. Check Q and ON/OFF in the preview before adding."
+  "ui.c1710972b6cece": {
+    "source": "REW IIRを読み込めません。設定は変更していません。{p0}",
+    "ja": "REW IIRを読み込めません。設定は変更していません。{p0}",
+    "en": "Cannot import REW IIR. Settings are unchanged. {p0}"
   },
-  "ui.3e8af2f73b2123": {
-    "source": "PEQを末尾へ追加", "ja": "PEQを末尾へ追加", "en": "Append PEQ filters"
-  },
-  "ui.707c761441fff0": {
-    "source": "REW PEQを読み込めません。設定は変更していません。{p0}",
-    "ja": "REW PEQを読み込めません。設定は変更していません。{p0}",
-    "en": "Cannot import REW PEQ. Settings are unchanged. {p0}"
-  },
-  "ui.1cb8c478db862b": {
-    "source": "IIRのPEQをREW形式のテキストで出力します。手動・自動の並び順とON／OFFを保持します。取込後に周波数・ゲイン・Q・ON／OFFを確認してください。",
-    "ja": "IIRのPEQをREW形式のテキストで出力します。手動・自動の並び順とON／OFFを保持します。取込後に周波数・ゲイン・Q・ON／OFFを確認してください。",
-    "en": "Export IIR PEQ as REW-format text, preserving manual/auto order and ON/OFF states. After import, check frequency, gain, Q, and ON/OFF states."
-  },
-  "ui.9c71a2b4945c91": {
-    "source": "REW形式：PEQ {p0}件。対象外のIIR {p1}件は含みません。Shelf・HP／LP・All Pass・FIR・出力ゲイン／Delay／極性は既存の各出力を使います。",
-    "ja": "REW形式：PEQ {p0}件。対象外のIIR {p1}件は含みません。Shelf・HP／LP・All Pass・FIR・出力ゲイン／Delay／極性は既存の各出力を使います。",
-    "en": "REW format: {p0} PEQ filters; {p1} other IIR filters excluded. Use the existing outputs for Shelf, HP/LP, All Pass, FIR, and output gain/delay/polarity."
+  "ui.226e95e2480489": {
+    "source": "REW形式：IIR {p0}件 → {p1}段。FIR・出力ゲイン／Delay／極性・独立した帯域分割は含みません。",
+    "ja": "REW形式：IIR {p0}件 → {p1}段。FIR・出力ゲイン／Delay／極性・独立した帯域分割は含みません。",
+    "en": "REW format: {p0} IIR filters → {p1} sections. FIR, output gain/delay/polarity and separate band splitting are excluded."
   },
   "ui.19fe6ec8b0bf0a": {
     "source": "Generic IIR parameters",
@@ -9208,16 +9199,6 @@
     "ja": "手動・拡張ファイル",
     "en": "Manual / extended file"
   },
-  "ui.f67ae31b6ca788": {
-    "source": "Match LR2 high-pass",
-    "ja": "LR2ハイパスに合わせる",
-    "en": "Match LR2 high-pass"
-  },
-  "ui.57ced0ef158460": {
-    "source": "Match LR2 low-pass",
-    "ja": "LR2ローパスに合わせる",
-    "en": "Match LR2 low-pass"
-  },
   "ui.bc0ccde3d69e12": {
     "source": "Match LR4 crossover",
     "ja": "LR4クロスオーバーに合わせる",
@@ -17157,5 +17138,50 @@
     "source": "入力は青、目標は橙、実現応答は緑、補正は紫、元目標などの参照線は灰色です。ゲインは実線、位相は破線です。各Wayの色は固定し、全体合成は黒／白の太線で表示します。色に加えて凡例名・線種・単位で区別します。",
     "ja": "入力は青、目標は橙、実現応答は緑、補正は紫、元目標などの参照線は灰色です。ゲインは実線、位相は破線です。各Wayの色は固定し、全体合成は黒／白の太線で表示します。色に加えて凡例名・線種・単位で区別します。",
     "en": "Input is blue, target amber, realized response green, correction purple, and references such as the original target gray. Gain uses solid lines and phase uses dashed lines. Each Way keeps a fixed color; system sums use thick black/white lines. Legend names, line patterns and units distinguish responses alongside color."
+  },
+  "ui.81cb7f8fb6c496": {
+    "source": "REW IIRを出力できません。Biquad出力を使用してください。{p0}",
+    "ja": "REW IIRを出力できません。Biquad出力を使用してください。{p0}",
+    "en": "Cannot export REW IIR. Use Biquad output. {p0}"
+  },
+  "ui.f818ee2b95434d": {
+    "source": "REW IIR 出力結果 (.csv)",
+    "ja": "REW IIR 出力結果 (.csv)",
+    "en": "REW IIR export results (.csv)"
+  },
+  "ui.03e7e785d93b98": {
+    "source": "REW形式：出力 {p0}件／対象外 {p1}件 → {p2}段。結果CSVに全項目の成否と理由を記録します。",
+    "ja": "REW形式：出力 {p0}件／対象外 {p1}件 → {p2}段。結果CSVに全項目の成否と理由を記録します。",
+    "en": "REW format: {p0} exported / {p1} excluded → {p2} sections. The results CSV lists every item and its outcome."
+  },
+  "ui.fb7494427bbefb": {
+    "source": "REW形式で表現できるIIRのみ出力します。対象外の理由は出力結果CSVで確認してください。対象外項目はBiquad出力を使用してください。",
+    "ja": "REW形式で表現できるIIRのみ出力します。対象外の理由は出力結果CSVで確認してください。対象外項目はBiquad出力を使用してください。",
+    "en": "Only representable IIR filters are exported. Review the results CSV for exclusion reasons. Use Biquad output for excluded items."
+  },
+  "ui.991a51a6cd792f": {
+    "source": "対応するIIRだけを出力します。高次HP／LPなどは複数段へ展開します。順序とON／OFFを保持し、除外理由は出力結果CSVへ記録します。取込後に各値と実現応答を確認してください。",
+    "ja": "対応するIIRだけを出力します。高次HP／LPなどは複数段へ展開します。順序とON／OFFを保持し、除外理由は出力結果CSVへ記録します。取込後に各値と実現応答を確認してください。",
+    "en": "Export supported IIR filters, expanding compound filters into sections and preserving order and ON/OFF. Exclusion reasons are recorded in the results CSV. Check parameters and response after import."
+  },
+  "ui.b6396dff2ed638": {
+    "source": "REWフィルター設定 (.txt / .yml / .yaml)",
+    "ja": "REWフィルター設定 (.txt / .yml / .yaml)",
+    "en": "REW filter settings (.txt / .yml / .yaml)"
+  },
+  "ui.b5fc7262b7c7fd": {
+    "source": "REW Generic TXT、またはCamillaDSP YAMLからIIRを読み込みます。確認後に既存IIRの末尾へ追加します。PEQ・Shelf・2次All PassのQは0.1刻みへ丸めます。YAMLは単一チャンネルのパラメータ形式が対象です。未対応形式がある場合は追加しません。種類・次数・Q・ON／OFFを確認してください。",
+    "ja": "REW Generic TXT、またはCamillaDSP YAMLからIIRを読み込みます。確認後に既存IIRの末尾へ追加します。PEQ・Shelf・2次All PassのQは0.1刻みへ丸めます。YAMLは単一チャンネルのパラメータ形式が対象です。未対応形式がある場合は追加しません。種類・次数・Q・ON／OFFを確認してください。",
+    "en": "Import IIR from REW Generic TXT or CamillaDSP YAML. Review before appending to existing IIR filters. PEQ, Shelf and second-order All Pass Q is rounded to a 0.1 grid. YAML supports single-channel parameter filters. Unsupported formats block the entire import. Check type, order, Q and ON/OFF."
+  },
+  "ui.092341a95bb9fe": {
+    "source": "Inverted 1st-order AP (LR2 high-pass)",
+    "ja": "1次AP・極性反転（LR2ハイパス）",
+    "en": "Inverted 1st-order AP (LR2 high-pass)"
+  },
+  "ui.c517ace1400ce6": {
+    "source": "1st-order AP (LR2 low-pass)",
+    "ja": "1次AP（LR2ローパス）",
+    "en": "1st-order AP (LR2 low-pass)"
   }
 }

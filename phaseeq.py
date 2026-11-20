@@ -203,8 +203,6 @@ from phase_fir_designer.iir import (
     export_biquad_csv,
     export_biquad_json,
     export_iir_parameter_document,
-    export_rew_peq,
-    import_rew_peq,
     export_minidsp_biquads,
     export_sigmastudio_biquads,
     export_camilladsp_biquads,
@@ -212,6 +210,9 @@ from phase_fir_designer.iir import (
     iir_frequency_response,
     iir_stage_response,
 )
+
+from phase_fir_designer.rew_filters import build_rew_export, export_rew_result_csv, import_rew_filters
+from phase_fir_designer.camilladsp_filters import import_camilladsp_filters
 
 from phase_fir_designer.workflow import (
     config_for_preview_stage,
@@ -8995,8 +8996,8 @@ IIR_FAMILY_LABELS = {
 IIR_ALLPASS_PRESET_OPTIONS = ("manual", "lr2_lo", "lr2_hi", "lr4", "lr8", "ntm4")
 IIR_ALLPASS_PRESET_LABELS = {
     "manual": "Manual",
-    "lr2_lo": "Match LR2 low-pass",
-    "lr2_hi": "Match LR2 high-pass",
+    "lr2_lo": "1st-order AP (LR2 low-pass)",
+    "lr2_hi": "Inverted 1st-order AP (LR2 high-pass)",
     "lr4": "Match LR4 crossover",
     "lr8": "Match LR8 crossover",
     "ntm4": "Match NTM4 crossover",
@@ -9075,7 +9076,7 @@ def _render_iir_allpass_controls(
             _render_iir_ntm4_parameters(list_key, item)
         section_count = 1 if preset in {"lr2_lo", "lr2_hi", "lr4", "ntm4"} else 2
         st.caption(
-            ui_message('ui.c3d599124a8999', p0=f'{IIR_ALLPASS_PRESET_LABELS[preset]}', p1=f'{section_count}')
+            ui_message('ui.c3d599124a8999', p0=display_text(IIR_ALLPASS_PRESET_LABELS[preset]), p1=f'{section_count}')
         )
         return str(preset), parse_iir_order(_registry_current_item_value(list_key, item, "filter_order", 2))
 
@@ -9202,7 +9203,7 @@ def _render_iir_biquad_downloads(
     key_prefix: str,
     file_role: str = "IIR",
     extra_sos=(),
-    include_rew_peq: bool = False,
+    include_rew_iir: bool = False,
 ) -> None:
     project_name = str(st.session_state.get("project_name", APP_NAME))
     if filters or np.asarray(extra_sos).size:
@@ -9215,19 +9216,31 @@ def _render_iir_biquad_downloads(
             on_click="ignore",
             help=ui_message('ui.ca01bb125c6d44'),
         )
-    if include_rew_peq:
-        peq_filters = [item for item in filters if item.kind == "peq"]
-        if peq_filters:
+    if include_rew_iir and filters:
+        rew_result = build_rew_export(filters, sample_rate)
+        if rew_result.exported_count:
             st.download_button(
-                ui_message('ui.3ddcc61f458c55'),
-                data=deferred_call(export_rew_peq, peq_filters),
-                file_name=output_file_name(project_name, file_role, "txt", app_slug=APP_SLUG, sample_rate=sample_rate, target="REW-PEQ", band=output_band_name, timestamp=OUTPUT_GENERATED_AT),
+                ui_message('ui.6ef8dc0985e1ad'),
+                data=rew_result.text,
+                file_name=output_file_name(project_name, file_role, "txt", app_slug=APP_SLUG, sample_rate=sample_rate, target="REW-IIR", band=output_band_name, timestamp=OUTPUT_GENERATED_AT),
                 mime="text/plain",
                 key=f"{key_prefix}_rew_peq",
                 on_click="ignore",
-                help=ui_message('ui.1cb8c478db862b'),
+                help=ui_message('ui.991a51a6cd792f'),
             )
-            st.caption(ui_message('ui.9c71a2b4945c91', p0=len(peq_filters), p1=len(filters) - len(peq_filters)))
+        st.download_button(
+            ui_message('ui.f818ee2b95434d'),
+            data=export_rew_result_csv(rew_result),
+            file_name=output_file_name(project_name, file_role, "csv", app_slug=APP_SLUG, sample_rate=sample_rate, target="REW-IIR-Result", band=output_band_name, timestamp=OUTPUT_GENERATED_AT),
+            mime="text/csv",
+            key=f"{key_prefix}_rew_result",
+            on_click="ignore",
+        )
+        st.caption(ui_message('ui.03e7e785d93b98', p0=rew_result.exported_count,
+                              p1=len(rew_result.entries) - rew_result.exported_count,
+                              p2=rew_result.section_count))
+        if rew_result.exported_count < len(rew_result.entries):
+            st.warning(ui_message('ui.fb7494427bbefb'))
     enabled = [item for item in filters if item.enabled]
     rows = biquad_rows(enabled, sample_rate, extra_sos=extra_sos)
     st.caption(
@@ -9284,23 +9297,24 @@ def _render_iir_biquad_downloads(
         )
 
 
-def _render_rew_peq_import(nyquist: float, sample_rate: int) -> None:
-    with st.expander(ui_message('ui.1a0c8e9d8d177f')):
-        st.caption(ui_message('ui.9bd92c3d185cc0'))
-        uploaded = st.file_uploader(ui_message('ui.303862eaf0fad8'), type=["txt"], key="iir_rew_peq_file")
+def _render_rew_iir_import(nyquist: float, sample_rate: int) -> None:
+    with st.expander(ui_message('ui.179a2c66a6ce70')):
+        st.caption(ui_message('ui.b5fc7262b7c7fd'))
+        uploaded = st.file_uploader(ui_message('ui.b6396dff2ed638'), type=["txt", "yaml", "yml"], key="iir_rew_peq_file")
         if uploaded is None:
             return
         try:
-            imported = import_rew_peq(uploaded.getvalue().decode("utf-8-sig"), sample_rate)
+            importer = import_camilladsp_filters if uploaded.name.lower().endswith((".yaml", ".yml")) else import_rew_filters
+            imported = importer(uploaded.getvalue().decode("utf-8-sig"), sample_rate)
             current = _collect_iir_state(nyquist)
             from list_menu_state import require_capacity
             require_capacity("iir_filter_items", len(current), len(imported))
         except (ValueError, UnicodeError) as exc:
-            st.error(ui_message('ui.707c761441fff0', p0=str(exc)))
+            st.error(ui_message('ui.c1710972b6cece', p0=str(exc)))
             return
-        st.dataframe([{"ON": item.enabled, "Frequency Hz": item.fc, "Gain dB": item.gain_db, "Q": item.q}
+        st.dataframe([{"Type": IIR_KIND_LABELS[item.kind], "ON": item.enabled, "Frequency Hz": item.fc, "Gain dB": item.gain_db, "Q": item.q, "Order": item.order}
                       for item in imported], hide_index=True)
-        if localized_button(st, ui_message('ui.3e8af2f73b2123'), key="iir_rew_peq_append"):
+        if localized_button(st, ui_message('ui.966761398613e4'), key="iir_rew_peq_append"):
             _set_registry_items("iir_filter_items", [_iir_registry_payload(item) for item in [*current, *imported]])
             st.session_state.pop("_iir_auto_diagnostics", None)
             st.session_state.pop("_iir_auto_profile_warning", None)
@@ -19919,8 +19933,7 @@ if active_page == "IIR EQ":
         st.caption(
             ui_message('ui.c3a4d9f3c21d6c')
         )
-        if iir_eq_view == "Gain":
-            _render_rew_peq_import(nyquist, int(sample_rate))
+        _render_rew_iir_import(nyquist, int(sample_rate))
         iir_filters = _render_iir_editor(nyquist, int(sample_rate), view=iir_eq_view)
     output_step = 2
     if iir_eq_view == "Gain":
@@ -19930,7 +19943,7 @@ if active_page == "IIR EQ":
     _flow_section(output_step, ui_message('ui.86508be7a30455'), tag=ui_message('ui.d38a2a54cf74a6'))
     with st.container(border=True):
         st.caption(ui_message('ui.81f8bd7c5614b3'))
-        _render_iir_biquad_downloads(_collect_iir_state(nyquist), int(sample_rate), key_prefix="iir_page_biquad", include_rew_peq=True)
+        _render_iir_biquad_downloads(_collect_iir_state(nyquist), int(sample_rate), key_prefix="iir_page_biquad", include_rew_iir=True)
     iir_variant_slot = st.empty()
 
 if navigation_page == "FIR EQ":
@@ -22492,7 +22505,7 @@ with live_result_body_window:
             int(sample_rate),
             key_prefix="export_iir_biquad",
             file_role="IIR-EQ",
-            include_rew_peq=True,
+            include_rew_iir=True,
         )
         from phase_fir_designer.linear_fir import band_split_output_auxiliary_sos
         split_alignment_sos = band_split_output_auxiliary_sos(config)

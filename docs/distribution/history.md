@@ -11,6 +11,8 @@ PhaseEQ Free／Proの初版は **v2.0.0** です。現在の操作は[操作ガ�
 
 ## バージョン別の案内
 
+- [v2.0.2：REW IIR／CamillaDSP対応](release-notes-v2.0.2.md)。対応フィルターの拡張、結果CSV、マルチウェイ出力の修正を案内します。
+- [v2.0.1：REW PEQテキストの読み込み・出力](release-notes-v2.0.1.md)。既存IIRを保持する追加操作を案内します。
 - [v2.0.0：Free／Proの初版](release-notes-v2.0.0.md)。両版の機能差とマルチウェイの作業保存・復元を案内します。
 
 実装上の変更は [CHANGELOG](../../CHANGELOG.md) を参照してください。
