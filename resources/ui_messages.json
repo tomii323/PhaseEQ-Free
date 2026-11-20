@@ -569,11 +569,6 @@
     "ja": "miniDSP",
     "en": "miniDSP"
   },
-  "ui.55d5ddf756a81e": {
-    "source": "miniDSP Advanced Biquadへ貼り付ける符号規約で出力します。機器の実動作Sample Rateを確認してください。",
-    "ja": "miniDSP Advanced Biquadへ貼り付ける符号規約で出力します。機器の実動作Sample Rateを確認してください。",
-    "en": "Export with the sign convention used by miniDSP Advanced Biquad. Check the device's actual operating sample rate."
-  },
   "ui.fbe88441ebfab6": {
     "source": "SigmaStudio",
     "ja": "SigmaStudio",
@@ -17198,5 +17193,10 @@
     "source": "係数を保持して適用します。ON／OFF・複製・削除ができます。周波数・Qへの推定変換は行いません。Fsを変更する場合は、この項目をOFFにするか、元のFsへ戻してください。",
     "ja": "係数を保持して適用します。ON／OFF・複製・削除ができます。周波数・Qへの推定変換は行いません。Fsを変更する場合は、この項目をOFFにするか、元のFsへ戻してください。",
     "en": "Apply stored coefficients without parameter fitting. Enable, duplicate or delete this item. To change sample rate, disable this item or return to its original rate."
+  },
+  "ui.c3f66a18e12fa2": {
+    "source": "miniDSP Advanced Biquad形式です。2x4 HD (48kHz)は48 kHz、2x4 HDは96 kHzで生成してください。PEQ → Menu ON → LOAD BIQUADS FILEで読み込みます。1ブロックは10段までです。残りのEQは変更されないため確認してください。",
+    "ja": "miniDSP Advanced Biquad形式です。2x4 HD (48kHz)は48 kHz、2x4 HDは96 kHzで生成してください。PEQ → Menu ON → LOAD BIQUADS FILEで読み込みます。1ブロックは10段までです。残りのEQは変更されないため確認してください。",
+    "en": "miniDSP Advanced Biquad format. Generate at 48 kHz for 2x4 HD (48kHz) or 96 kHz for 2x4 HD. Load via PEQ → Menu ON → LOAD BIQUADS FILE. Each PEQ block holds 10 sections; check any remaining EQ slots because they are unchanged."
   }
 }

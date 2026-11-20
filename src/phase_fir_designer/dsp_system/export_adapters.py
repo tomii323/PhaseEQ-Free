@@ -8,12 +8,13 @@ import zipfile
 
 import numpy as np
 
-from ..export import export_bin, export_wav
 from ..iir import export_biquad_csv, export_biquad_json, export_minidsp_biquads, export_sigmastudio_biquads
 from .output_pipeline import DSPSystemOutput, DSPWayOutput
 from .signal_path import build_final_signal_path_traces
 from .export_names import _slug, _rate_label, _way_stem
 from .camilladsp_export import export_camilladsp_yaml as _camilladsp_yaml
+from .minidsp_export import build_minidsp_files
+from .export_codecs import _wav_bytes, _bin_bytes, _coefficient_text
 
 
 @dataclass(frozen=True)
@@ -29,22 +30,6 @@ class DSPExportPackage:
             for path, data in sorted(self.files.items()):
                 archive.writestr(path, data)
         return buffer.getvalue()
-
-
-def _wav_bytes(coefficients: np.ndarray, sample_rate: int) -> bytes:
-    output = io.BytesIO()
-    export_wav(output, np.asarray(coefficients, dtype=float), int(sample_rate))
-    return output.getvalue()
-
-
-def _bin_bytes(coefficients: np.ndarray) -> bytes:
-    output = io.BytesIO()
-    export_bin(output, np.asarray(coefficients, dtype=float))
-    return output.getvalue()
-
-
-def _coefficient_text(coefficients: np.ndarray) -> bytes:
-    return ("\n".join(f"{float(value):.16g}" for value in coefficients) + "\n").encode()
 
 
 def _stamp(timestamp: datetime) -> str:
@@ -139,13 +124,7 @@ def build_dsp_export_package(
             adapter = "minidsp"
             adapter_root = f"{root}/{adapter}"
             files[f"{adapter_root}/miniDSP_Routing_{stamp}.txt"] = _routing_text(output, dsp_id).encode()
-            for way in ways:
-                stem = _way_stem(way)
-                if way.fir_enabled:
-                    files[f"{adapter_root}/fir/{stem}_FIR_F32LE_{_rate_label(way.sample_rate)}_{stamp}.bin"] = _bin_bytes(way.coefficients)
-                    files[f"{adapter_root}/fir/{stem}_FIR_Paste_{_rate_label(way.sample_rate)}_{stamp}.txt"] = _coefficient_text(way.coefficients)
-                if way.iir_filters:
-                    files[f"{adapter_root}/iir/{stem}_IIR_miniDSP_{_rate_label(way.sample_rate)}_{stamp}.txt"] = export_minidsp_biquads(way.iir_filters, way.sample_rate).encode()
+            files.update(build_minidsp_files(ways, adapter_root, stamp))
         for way in ways:
             composite_path = f"composite/{_slug(way.composite_group, 'Main')}/{_way_stem(way)}_{_rate_label(way.sample_rate)}.wav"
             if way.fir_enabled:

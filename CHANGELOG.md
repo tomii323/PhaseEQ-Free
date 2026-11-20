@@ -4,6 +4,11 @@ PhaseEQ Free／Proの変更を、初版の v2.0.0 から記録します。分離
 
 ## 未リリース
 
+## v2.0.4 - 2026-11-20
+
+- miniDSP向けのStandalone、DSP System、Canonical Multiwayのファイル生成を独立モジュールへ分離する。既存の係数、段順、ファイル名と形式を維持し、C-DSP専用経路の互換importも保持する。
+- 2x4 HDの48／96 kHz、PEQの10段制限と未使用段の保持をヘルプ・利用文書へ追記する。Device Console 1.2.5の両オフラインテンプレートで計6ファイル・230係数を照合した。実機への送信・音声処理は未確認である。
+
 ## v2.0.3 - 2026-11-20
 
 - CamillaDSPのDiffEq／Biquad Free係数形式の読み込みに対応する。2次以下の係数段とFsを保持し、既存IIR一覧から保存復元・ON／OFF・再出力を行う。

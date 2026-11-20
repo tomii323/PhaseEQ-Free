@@ -4397,19 +4397,9 @@ def export_iir_parameter_document(filters: Iterable[IIRFilter], sample_rate: int
 
 
 def export_minidsp_biquads(filters: Iterable[IIRFilter], sample_rate: int, *, extra_sos=()) -> str:
-    lines: list[str] = []
-    for row in biquad_rows(filters, sample_rate, extra_sos=extra_sos):
-        lines.extend(
-            [
-                f"biquad{row['section']},",
-                f"b0={float(row['b0']):.16g},",
-                f"b1={float(row['b1']):.16g},",
-                f"b2={float(row['b2']):.16g},",
-                f"a1={-float(row['a1']):.16g},",
-                f"a2={-float(row['a2']):.16g}",
-            ]
-        )
-    return "\n".join(lines) + ("\n" if lines else "")
+    """Compatibility entry point for the independent miniDSP formatter."""
+    from .minidsp_export import export_minidsp_biquads as export
+    return export(filters, sample_rate, extra_sos=extra_sos)
 
 
 def export_sigmastudio_biquads(filters: Iterable[IIRFilter], sample_rate: int, *, extra_sos=()) -> str:
