@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from .adapters import available_adapters
 
 PROFILE_ID = 'minidsp_cdsp_8x12_dl_dirac_apf'
+CDSP_192K_PROFILE_ID = 'minidsp_cdsp_8x12_192k'
 
 # Also used by Free to retain destination settings without loading adapters.
 DEFAULT_DESTINATION = 'minidsp'

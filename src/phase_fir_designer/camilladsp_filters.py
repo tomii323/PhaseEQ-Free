@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 import math
+import re
 from typing import Iterable
 
 import yaml
@@ -43,11 +44,15 @@ def _number(parameters: dict, key: str) -> float:
 
 
 def _convert(definition: dict, sample_rate: int) -> IIRFilter:
-    definition = _mapping(definition, {"type", "parameters"})
+    definition = _mapping(definition, {"type", "parameters", "description"})
     parameters = definition.get("parameters")
     if not isinstance(parameters, dict):
         raise ValueError("CamillaDSP: parameters required")
     kind = parameters.get("type")
+    if definition.get("type") == "DiffEq" or (definition.get("type") == "Biquad" and kind == "Free"):
+        from .iir_coefficients import camilladsp_coefficient_row
+        return IIRFilter(kind="biquad", coefficients=camilladsp_coefficient_row(definition),
+                         coefficient_sample_rate=sample_rate)
     fc = _number(parameters, "freq")
     if definition.get("type") == "BiquadCombo":
         combos = {"ButterworthHighpass": ("high_pass", "butterworth"),
@@ -93,6 +98,9 @@ def import_camilladsp_filters(text: str, sample_rate: int) -> list[IIRFilter]:
     """
     if len(text) > 1_048_576:
         raise ValueError("CamillaDSP: file exceeds 1 MiB")
+    rates = re.findall(r"(?m)^# PhaseEQ coefficient sample rate: (\d+) Hz\s*$", text)
+    if rates and any(int(rate) != sample_rate for rate in rates):
+        raise ValueError("CamillaDSP: coefficient sample rate differs from the current sample rate")
     try:
         data = yaml.load(text.lstrip('\ufeff'), Loader=_FilterLoader)
     except (yaml.YAMLError, RecursionError) as exc:
@@ -130,7 +138,8 @@ def export_camilladsp_biquads(filters: Iterable[IIRFilter], sample_rate: int, *,
     """Return CamillaDSP filter definitions using normalized DiffEq sections."""
     from .iir import biquad_rows
 
-    lines = ["# PhaseEQ CamillaDSP IIR filter snippet", "filters:"]
+    lines = ["# PhaseEQ CamillaDSP IIR filter snippet",
+             f"# PhaseEQ coefficient sample rate: {int(sample_rate)} Hz", "filters:"]
     names: list[str] = []
     for row in biquad_rows(filters, sample_rate, extra_sos=extra_sos):
         name = f"phaseeq_iir_{int(row['section'])}"

@@ -2,7 +2,7 @@
 from copy import deepcopy
 from dataclasses import dataclass, replace
 
-from .destinations import PROFILE_ID
+from .destinations import PROFILE_ID, CDSP_192K_PROFILE_ID as CDSP_192K
 
 
 @dataclass(frozen=True)
@@ -31,7 +31,13 @@ def _cdsp_changes(settings, mode):
 
 
 # Register additional profile-specific rules here; UI and persistence stay common.
-PROFILE_SETUP_RULES = {PROFILE_ID: _cdsp_changes}
+def _cdsp_192k_changes(settings, mode):
+    conf = settings.get(mode, {})
+    return (SetupChange(mode, 'fir_output_enabled', conf.get('fir_output_enabled', False), False,
+                        'DSP FIR出力', 'DSP FIR output'),)
+
+
+PROFILE_SETUP_RULES = {PROFILE_ID: _cdsp_changes, CDSP_192K: _cdsp_192k_changes}
 
 
 def plan_setup(settings, mode, profile):

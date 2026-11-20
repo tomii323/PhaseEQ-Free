@@ -1,7 +1,7 @@
 # PhaseEQ 出力ファイル仕様
 
 - 文書更新日: 2026-11-14
-- 対象公開版: PhaseEQ v2.0.2
+- 対象公開版: PhaseEQ v2.0.5
 - 文書状態: 現行仕様と15ページ簡易操作マニュアルに対応
 
 PhaseEQの「書き出し」、マルチウェイの「保存・出力」、PhaseEQの「設定 → バックアップと復元」で保存できるファイルを説明します。操作順は[操作ガイド](user-guide.md)、過去の変更は[更新履歴](history.md)を参照してください。
@@ -61,6 +61,30 @@ IIRイコライザー、出力帯域分割、両者を直列にしたCombined II
 
 量子化後の極半径が`0.9999`以上になる構成は安全判定を通過せず、正式なDSP Package出力を許可しません。表示用の理論応答ではなく、実際に出力する量子化係数で判定します。
 
+### miniDSP Device Consoleへの読み込み
+
+`miniDSP`のTXTはAdvanced Biquad形式です。`2x4 HD (48kHz)`では48 kHz、`2x4 HD`では96 kHzで生成してください。対象チャンネルの`PEQ`を開き、`Menu`をONにして`LOAD BIQUADS FILE`から読み込みます。読み込み後は各段がAdvanced Modeになり、周波数・Gain・Qの編集値への逆変換は行われません。
+
+1つのPEQブロックは10段です。HP／LPやAPプリセットは複数段になる場合があるため、フィルター項目数ではなくTXTの`biquad`段数を確認してください。10段を超えるファイルはConsole側で先頭10段のみ読み込まれます。10段未満の場合は残りのEQが保持されるため、不要な段の無効化も確認してください。汎用miniDSP出力の上限は機種別の10段制限と連動しないため、出力前に対象ブロックへ収まることを確認してください。
+
+StandaloneのIIR出力は有効なPEQ、Shelf、HP／LP、1次／反転1次／2次AP、係数形式のIIRを既存のバイクアッド列として保存します。FIR、ルーティング、別設定のゲイン・遅延はこのTXTに含みません。マルチウェイの別ファイルを同じPEQブロックへ続けて読み込むとEQ1から上書きされます。ZIP内の経路情報と設定ファイルに従って配置してください。
+
+Device Console 1.2.5の両オフラインテンプレートで、単体EQと2つのマルチウェイ出力経路の読み込み、および保存係数のfloat32値を照合しました。実機への送信・音声処理は未確認です。実機へ適用する前に対象モデル、動作サンプルレート、使用するプリセットを確認してください。形式と読み込み動作は[miniDSP公式PEQ仕様](https://docs.minidsp.com/product-manuals/2x4-hd/dsp-reference/peq.html)を参照できます。
+
+### マルチウェイのC-DSP 8x12（192 kHz）出力
+
+ProのDSP出力先で`miniDSP`、プロファイルで`miniDSP C-DSP 8x12 (192 kHz)`を選びます。「このDSP用の設定へ変更」は、現在のマルチウェイ構成のFsを192 kHz、DSP FIR出力をOFFにします。PhaseEQのEQ設定やWorking Sessionは保持します。設計を再計算し、互換性確認後にDSP出力ZIPを保存します。Dirac Live付きのC-DSP 8x12 DLには、48 kHzの専用出力を使用してください。
+
+各出力の`output_peq_192k.txt`はIIR EQ → 補助EQ、`output_xover_192k.txt`はIIRクロスオーバー（HP／LP）→ 位相整合の補償APです。PEQは合計10段、Xoverは合計8段を超える場合に出力を停止します。残りの段は通過係数で埋め、毎回PEQ 10段・Xover 8段を書き出します。出力番号は1〜12、Gainは−72〜+12 dB、Delayは0〜25 msです。小数サンプルのDelayは互換性警告と設定値を確認し、機器での実現値を確認してください。FIRを含む出力と192 kHz以外の出力は許可しません。
+
+1. ZIP内の`setup_guide.txt`と各出力の`channel_settings.json`で出力先を確認します。
+2. 不要な入力EQ・コンプレッサー等を解除し、入力ルーティングとチャンネル間のLinkを確認します。出力ごとに設定する場合は、他出力へのLinkを解除してください。
+3. `OUTPUT → PEQ → Advanced → IMPORT`で、その出力の`output_peq_192k.txt`を読み込み、`PROCESS`を実行します。全10段の係数と有効状態を確認してください。読み込み後もバイパス状態が保持される場合があります。
+4. `OUTPUT → Xover → Advanced`へ、その出力の`output_xover_192k.txt`の全文を貼り付け、`PROCESS`を実行します。Xoverは8段全体を一度に設定します。有効状態を確認してください。
+5. JSONのGain・極性・Delayを出力側へ一度だけ設定します。TXTにはこれらの独立設定を含みません。
+
+ルーティングや機器への送信は手動で行います。実機での演算・音声測定は未確認です。適用前に対象プリセット、出力先、機器側の応答と有効状態を確認してください。
+
 ## Generic IIR Parameters
 
 `汎用IIRパラメーター`は、バイクアッド係数を直接入力できず、IIRフィルターの設計値を手入力するDSP向けのMarkdown文書です。サンプルレートと、各フィルターの`Apply order / Type / Frequency [Hz] / Gain [dB] / Q / Order / Enabled / Family / Origin / All-pass preset`を記録します。無効なフィルターも`Enabled: No`として残し、編集内容と並び順を失いません。
@@ -99,7 +123,7 @@ REWの`.req`と`Export filter settings as formatted text`は対象外です。RE
 
 ### CamillaDSP用YAMLの読み込み
 
-同じ読み込み欄で、REWのCamillaDSP用に保存した`.yml`／`.yaml`を選べます。CamillaDSP本体の設定ファイルは不要です。`filters:`のパラメータ形式を読み込み、任意の`pipeline:`がある場合はその`names`順に追加します。`pipeline`なしでは定義順を使用します。
+同じ読み込み欄で、REWのCamillaDSP用に保存した`.yml`／`.yaml`を選べます。CamillaDSP本体の設定ファイルは不要です。`filters:`のパラメーター形式と係数形式を読み込み、任意の`pipeline:`がある場合はその`names`順に追加します。`pipeline`なしでは定義順を使用します。
 
 | CamillaDSP形式 | PhaseEQでの扱い |
 |---|---|
@@ -109,8 +133,16 @@ REWの`.req`と`Export filter settings as formatted text`は対象外です。RE
 | `Biquad`: `Allpass`／`AllpassFO` | 手動2次AP／通常の1次AP |
 | `BiquadCombo`: `ButterworthHighpass`／`ButterworthLowpass` | 1〜4次・6次・8次 |
 | `BiquadCombo`: `LinkwitzRileyHighpass`／`LinkwitzRileyLowpass` | 2次・4次・6次・8次 |
+| `DiffEq`: `a`／`b`配列 | 各配列1〜3要素。0〜2次の係数段として保持 |
+| `Biquad`: `Free` | `b0`・`b1`・`b2`・`a1`・`a2`を係数段として保持 |
 
-単一チャンネル・単一Filterステップを扱い、各定義を一度ずつ参照します。REWが出力に含めなかったOFFフィルターは復元しません。読み込む項目はすべてONになります。周波数・ゲイン・Q・合計128件の制限とQの丸めは上記TXTと共通です。複数チャンネル、機器設定付きの完全な構成ファイル、`DiffEq`／`Free`係数、Notch、LinkwitzTransform、bandwidth／slope指定などは対象外です。未対応項目、不正な参照、重複キー、YAML aliasを含む場合は全体を追加せず、既存設定を保持します。
+単一チャンネル・単一Filterステップを扱い、各定義を一度ずつ参照します。REWが出力に含めなかったOFFフィルターは復元しません。読み込む項目はすべてONになります。パラメーター形式の周波数・ゲイン・Q制限とQの丸め、既存項目との合計128件の制限は上記TXTと共通です。複数チャンネル、機器設定付きの完全な構成ファイル、パラメーター形式のNotch、LinkwitzTransform、bandwidth／slope指定などは対象外です。未対応項目、不正な参照、重複キー、YAML aliasを含む場合は全体を追加せず、既存設定を保持します。
+
+係数形式は1段ごとに`Biquad係数`として追加し、a0=1へ正規化します。足りない1次・0次の係数は0で補います。パラメーターへの推定変換やQの丸めを行わず、Gain／Phaseの両画面に表示します。ON／OFF・複製・削除を行えます。係数は直接編集できません。3次以上のDiffEq単独定義、非有限値、a0=0、単位円上または外側に極を持つ段は拒否します。高次HP／LPは、PhaseEQが出力した2次以下の複数段をそのまま読み込みます。
+
+係数には元のFsが必要です。読み込み前にPhaseEQのFsを出力元に合わせてください。新しいStandalone出力とマルチウェイの`filters_phaseeq_iir.yml`／`filters_crossover_iir.yml`にはFsコメントを記録し、不一致時は読み込みを拒否します。Fs情報のない既存ファイルは、読み込み時のFsを保存します。取り込み後のFs変更では有効な係数項目の処理を停止します。元のFsへ戻すか、その項目をOFFにしてください。設定JSONには係数とFsを保存します。この項目を含む設定は対応版のPhaseEQで使用してください。
+
+再出力は`CamillaDSP`ボタンを使い、DiffEq形式へ出力します。Freeとして読み込んだ項目もDiffEqとして出力します。REW TXTでは係数項目を除外し、結果CSVへ理由を記録します。マルチウェイの分離IIR YAMLを読み込む場合は、対象経路だけを残した`filters:`を使用してください。機器・経路・ゲイン・遅延・FIRの設定を含む全体構成は読み込みません。
 
 `AllpassFO`は通常の1次APです。極性反転付き1次APはPhase画面のプリセット`1次AP・極性反転（LR2ハイパス）`で指定します。既存の`lr2_hi`設定と同じ計算・保存形式を使用します。どちらの1次APもREW Generic TXTからは除外され、結果CSVに理由が記録されます。係数を保持して渡す場合はBiquad出力を使用してください。PhaseEQのCamillaDSP出力は従来の`DiffEq`係数形式です。
 

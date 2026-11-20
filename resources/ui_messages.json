@@ -569,11 +569,6 @@
     "ja": "miniDSP",
     "en": "miniDSP"
   },
-  "ui.55d5ddf756a81e": {
-    "source": "miniDSP Advanced Biquadへ貼り付ける符号規約で出力します。機器の実動作Sample Rateを確認してください。",
-    "ja": "miniDSP Advanced Biquadへ貼り付ける符号規約で出力します。機器の実動作Sample Rateを確認してください。",
-    "en": "Export with the sign convention used by miniDSP Advanced Biquad. Check the device's actual operating sample rate."
-  },
   "ui.fbe88441ebfab6": {
     "source": "SigmaStudio",
     "ja": "SigmaStudio",
@@ -17169,10 +17164,10 @@
     "ja": "REWフィルター設定 (.txt / .yml / .yaml)",
     "en": "REW filter settings (.txt / .yml / .yaml)"
   },
-  "ui.b5fc7262b7c7fd": {
-    "source": "REW Generic TXT、またはCamillaDSP YAMLからIIRを読み込みます。確認後に既存IIRの末尾へ追加します。PEQ・Shelf・2次All PassのQは0.1刻みへ丸めます。YAMLは単一チャンネルのパラメータ形式が対象です。未対応形式がある場合は追加しません。種類・次数・Q・ON／OFFを確認してください。",
-    "ja": "REW Generic TXT、またはCamillaDSP YAMLからIIRを読み込みます。確認後に既存IIRの末尾へ追加します。PEQ・Shelf・2次All PassのQは0.1刻みへ丸めます。YAMLは単一チャンネルのパラメータ形式が対象です。未対応形式がある場合は追加しません。種類・次数・Q・ON／OFFを確認してください。",
-    "en": "Import IIR from REW Generic TXT or CamillaDSP YAML. Review before appending to existing IIR filters. PEQ, Shelf and second-order All Pass Q is rounded to a 0.1 grid. YAML supports single-channel parameter filters. Unsupported formats block the entire import. Check type, order, Q and ON/OFF."
+  "ui.a4f1d5afffb9ca": {
+    "source": "REW Generic TXT、またはCamillaDSP YAMLからIIRを読み込み、確認後に末尾へ追加します。パラメーター形式のPEQ・Shelf・2次All PassのQは0.1刻みへ丸めます。DiffEq／Freeは2次以下の係数を保持します。Fs情報のない係数ファイルは元のFsに合わせて読み込んでください。未対応形式がある場合は追加しません。",
+    "ja": "REW Generic TXT、またはCamillaDSP YAMLからIIRを読み込み、確認後に末尾へ追加します。パラメーター形式のPEQ・Shelf・2次All PassのQは0.1刻みへ丸めます。DiffEq／Freeは2次以下の係数を保持します。Fs情報のない係数ファイルは元のFsに合わせて読み込んでください。未対応形式がある場合は追加しません。",
+    "en": "Import REW Generic TXT or CamillaDSP YAML, then append after review. Parameter-based PEQ, Shelf and second-order All Pass Q values are rounded to 0.1. DiffEq/Free coefficients up to second order are preserved. Match the source sample rate before importing coefficient files without rate metadata. Unsupported formats prevent the whole import."
   },
   "ui.092341a95bb9fe": {
     "source": "Inverted 1st-order AP (LR2 high-pass)",
@@ -17183,5 +17178,25 @@
     "source": "1st-order AP (LR2 low-pass)",
     "ja": "1次AP（LR2ローパス）",
     "en": "1st-order AP (LR2 low-pass)"
+  },
+  "ui.107a6ca5bb01f8": {
+    "source": "Biquad coefficients",
+    "ja": "Biquad係数",
+    "en": "Biquad coefficients"
+  },
+  "ui.1e60b68259d7a7": {
+    "source": "係数のFs: {p0} Hz",
+    "ja": "係数のFs: {p0} Hz",
+    "en": "Coefficient sample rate: {p0} Hz"
+  },
+  "ui.7391e2803fec2d": {
+    "source": "係数を保持して適用します。ON／OFF・複製・削除ができます。周波数・Qへの推定変換は行いません。Fsを変更する場合は、この項目をOFFにするか、元のFsへ戻してください。",
+    "ja": "係数を保持して適用します。ON／OFF・複製・削除ができます。周波数・Qへの推定変換は行いません。Fsを変更する場合は、この項目をOFFにするか、元のFsへ戻してください。",
+    "en": "Apply stored coefficients without parameter fitting. Enable, duplicate or delete this item. To change sample rate, disable this item or return to its original rate."
+  },
+  "ui.c3f66a18e12fa2": {
+    "source": "miniDSP Advanced Biquad形式です。2x4 HD (48kHz)は48 kHz、2x4 HDは96 kHzで生成してください。PEQ → Menu ON → LOAD BIQUADS FILEで読み込みます。1ブロックは10段までです。残りのEQは変更されないため確認してください。",
+    "ja": "miniDSP Advanced Biquad形式です。2x4 HD (48kHz)は48 kHz、2x4 HDは96 kHzで生成してください。PEQ → Menu ON → LOAD BIQUADS FILEで読み込みます。1ブロックは10段までです。残りのEQは変更されないため確認してください。",
+    "en": "miniDSP Advanced Biquad format. Generate at 48 kHz for 2x4 HD (48kHz) or 96 kHz for 2x4 HD. Load via PEQ → Menu ON → LOAD BIQUADS FILE. Each PEQ block holds 10 sections; check any remaining EQ slots because they are unchanged."
   }
 }
