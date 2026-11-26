@@ -3,6 +3,10 @@ import io
 from utils.ui_localization import ui_message, display_text
 from utils.ui_language import current_language
 import numpy as np
+from runtime.matplotlib_cache import configure_matplotlib_cache
+
+configure_matplotlib_cache()
+
 import matplotlib
 
 # Streamlitへ画像として渡すため、OSのGUIバックエンドに依存させない。

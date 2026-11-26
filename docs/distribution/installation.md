@@ -250,6 +250,18 @@ python -m streamlit run phaseeq.py
 
 ## トラブル対処
 
+### フォントキャッシュ生成の通知が表示される
+
+`Matplotlib is building the font cache; this may take a moment.`は、グラフ用フォント情報を生成している通知です。初回は完了まで待ってください。通常起動では環境チェックと両アプリで同じ保存先を使い、次回起動時に再利用します。
+
+| OS | 標準の保存先 |
+| --- | --- |
+| Windows | `%LOCALAPPDATA%\PhaseEQ\Cache\matplotlib` |
+| macOS | `~/Library/Caches/PhaseEQ/matplotlib` |
+| Linux | `${XDG_CACHE_HOME:-~/.cache}/phaseeq/matplotlib` |
+
+`MPLCONFIGDIR`が設定されている場合は、その指定を優先します。毎回生成される場合は、指定先への書込み権限と、キャッシュを削除する設定がないかを確認してください。フォントやMatplotlibの変更によって再生成される場合があります。
+
 ### `ModuleNotFoundError` が表示される
 
 標準ランチャーの初回起動では、`Recreating virtual environment`の後に不足依存関係を検出し、オンラインインストールへ進みます。インストール開始前に`numpy`などの`ModuleNotFoundError`で停止する場合は、修正済みの最新Releaseへ更新してください。

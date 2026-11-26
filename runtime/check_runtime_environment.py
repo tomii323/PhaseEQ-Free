@@ -10,16 +10,21 @@ import re
 import subprocess
 import sys
 import sysconfig
-import tempfile
 from pathlib import Path
 
+if __package__:
+    from .matplotlib_cache import configure_matplotlib_cache
+else:
+    # The launcher runs this file directly before third-party packages exist.
+    from matplotlib_cache import configure_matplotlib_cache
+
+configure_matplotlib_cache()
 
 ROOT = Path(__file__).resolve().parents[1]
 REQUIREMENTS_FILE = ROOT / "requirements.txt"
 CONSTRAINTS_FILE = ROOT / "constraints" / "test-environment.txt"
 NAME_PATTERN = re.compile(r"^\s*([A-Za-z0-9_.-]+)")
 PIN_PATTERN = re.compile(r"^\s*([A-Za-z0-9_.-]+)==([^\s;]+)\s*$")
-os.environ.setdefault("MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "phaseeq-matplotlib-cache"))
 OPTIONAL_RUNTIME_IMPORTS = frozenset({"sounddevice"})
 
 

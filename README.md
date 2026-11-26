@@ -1,6 +1,6 @@
 # PhaseEQ
 
-リリースバージョン: **v2.0.6**
+リリースバージョン: **v2.0.7**
 
 文書更新日: **2026-11-26**
 
@@ -46,7 +46,7 @@ FIR OFFでもIIRによる設計を続けられます。FIRイコライザーの�
 | [出力ファイル仕様](docs/distribution/output-format.md) | FIR／IIR係数、作業保存、DSP用パッケージ |
 | [インストールガイド](docs/distribution/installation.md) | 導入・更新・起動 |
 | [更新履歴](docs/distribution/history.md) | v2.0.0からのFree／Proの履歴と旧版の参照先 |
-| [v2.0.6 更新案内](docs/distribution/release-notes-v2.0.6.md) | ルームEQ差分の独立保存、加算／減算、ON/OFF |
+| [v2.0.7 更新案内](docs/distribution/release-notes-v2.0.7.md) | フォントキャッシュの共通化、起動時の再利用と初回生成の案内 |
 | [v2.0.5 更新案内](docs/distribution/release-notes-v2.0.5.md) | C-DSP 8x12（192 kHz）のマルチウェイ専用出力 |
 | [v2.0.2 更新案内](docs/distribution/release-notes-v2.0.2.md) | REW IIR／CamillaDSP対応とマルチウェイ出力修正 |
 | [v2.0.1 更新案内](docs/distribution/release-notes-v2.0.1.md) | REW PEQテキストの読み込み・出力 |

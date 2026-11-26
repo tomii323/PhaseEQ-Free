@@ -2,6 +2,10 @@
 import os
 import platform
 from functools import lru_cache
+from runtime.matplotlib_cache import configure_matplotlib_cache
+
+configure_matplotlib_cache()
+
 from matplotlib import font_manager as fm
 from matplotlib.ft2font import FT2Font
 

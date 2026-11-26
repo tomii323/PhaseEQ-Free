@@ -1,4 +1,8 @@
 from __future__ import annotations
+from runtime.matplotlib_cache import configure_matplotlib_cache
+
+configure_matplotlib_cache()
+
 from utils.ui_localization import ui_message, display_text, localized_formatter, display_notice, user_ui_label
 
 from collections import OrderedDict
