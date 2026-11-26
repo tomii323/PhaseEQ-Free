@@ -13188,13 +13188,16 @@ if _target_edit_session_id:
         _navigate_to_page("Target")
 
 
-_pending_context = st.session_state.pop("_pending_composite_context", None)
+# A newer UI event can interrupt this run before the context is committed.
+# Retain the explicit request so the replacement run can finish the switch.
+_pending_context = st.session_state.get("_pending_composite_context")
+_context_request = _pending_context
 _context_initialized = bool(st.session_state.get("_composite_context_initialized"))
 _current_assignment = st.session_state.get("_active_context_assignment")
 _current_context_id = str(getattr(_current_assignment, "assignment_id", ""))
 from ui.composite_context import (
     context_owner, source_context_payload, validate_draft_owner, load_standalone_settings,
-    requested_context_id, same_channel_context, queue_channel_switch,
+    requested_context_id, same_channel_context, queue_channel_switch, complete_channel_switch,
 )
 _requested_context_id = requested_context_id(
     str(st.query_params.get("assignment", "")).strip(), _current_context_id, _pending_context,
@@ -13343,8 +13346,10 @@ if _active_target_edit_session is None and (
                 ),
                 "state_updates": {},
             }
+        complete_channel_switch(st.session_state, _context_request)
     except Exception as exc:
         rollback_session_state(st.session_state, _context_before)
+        complete_channel_switch(st.session_state, _context_request)
         st.session_state.pop("_composite_channel_switcher_context", None)
         if _current_assignment is not None:
             st.query_params["assignment"] = _current_context_id
@@ -13353,6 +13358,9 @@ if _active_target_edit_session is None and (
             st.query_params.pop("assignment", None)
             st.query_params.pop("channel", None)
         st.session_state["_settings_notice"] = f"切替できませんでした。元の設定を保持しています: {exc}"
+elif _active_target_edit_session is None:
+    # A run interrupted after committing identity may leave only its request.
+    complete_channel_switch(st.session_state, _context_request)
 if _open_registered_target_menu:
     if (_target_menu_source_assignment is not None
         and st.session_state.get("_active_context_assignment") is None):
@@ -19721,7 +19729,7 @@ if active_page == "Input":
 if active_page == "Target":
   with editor_window:
     from ui.room_eq import render_room_eq
-    render_room_eq()
+    render_room_eq(chart_renderer=_series_chart)
 
 if active_page == "Target" and target_locked:
   with editor_window:

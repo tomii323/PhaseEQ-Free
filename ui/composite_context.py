@@ -99,6 +99,12 @@ def queue_channel_switch(state):
     }
 
 
+def complete_channel_switch(state, request):
+    """Acknowledge only this run's request, preserving a newer UI event."""
+    if request is not None and state.get("_pending_composite_context") is request:
+        state.pop("_pending_composite_context", None)
+
+
 def requested_context_id(query_id, current_id, pending):
     # An incoming Multiway URL wins over an older queued widget action.
     if query_id and query_id != current_id:

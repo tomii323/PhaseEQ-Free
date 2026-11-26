@@ -6,6 +6,8 @@ import json
 import numpy as np
 from scipy.signal import find_peaks
 
+from frequency_smoothing import smooth_segment, smooth_three_band
+
 
 SHAPING_VERSION = 4
 
@@ -77,19 +79,6 @@ def speaker_input_with_gain(speaker, gain_db):
 def runs(mask):
     ids = np.flatnonzero(mask)
     return np.split(ids, np.flatnonzero(np.diff(ids) > 1) + 1) if ids.size else []
-
-
-def smooth_segment(values, x, width):
-    """Gaussian FWHM in octaves, renormalized at data ends (no extrapolation)."""
-    if width == 0 or len(x) < 3:
-        return values.copy()
-    sigma = width / 2.355
-    result = np.empty_like(values)
-    for i, center in enumerate(x):
-        ids = np.flatnonzero(abs(x - center) <= 3 * sigma)
-        weights = np.exp(-.5 * ((x[ids] - center) / sigma)**2)
-        result[i] = np.dot(values[ids], weights) / weights.sum()
-    return result
 
 
 def compressed_dip_depth(depth, threshold, ratio, knee):
@@ -183,12 +172,9 @@ def shape_error(frequency, error, valid, settings, *, speaker_trace=None):
         lift[ids] = local_lift
         adjusted = yy + local_lift
         if settings.smoothing_enabled:
-            low = np.clip((xx-np.log2(settings.low_boundary_hz)+1/6)/(1/3), 0, 1)
-            high = np.clip((xx-np.log2(settings.high_boundary_hz)+1/6)/(1/3), 0, 1)
-            low, high = low*low*(3-2*low), high*high*(3-2*high)
-            weights = (1-low, low*(1-high), low*high)
-            adjusted = sum(w*smooth_segment(adjusted, xx, width) for w, width in
-                           zip(weights, (settings.low_oct, settings.mid_oct, settings.high_oct)))
+            adjusted = smooth_three_band(adjusted, xx,
+                (settings.low_boundary_hz, settings.high_boundary_hz),
+                (settings.low_oct, settings.mid_oct, settings.high_oct))
         shaped[ids] = adjusted
     return shaped, lift, dips
 
