@@ -578,19 +578,29 @@ JAPANESE_UI_LABELS: dict[str, str] = {
 JAPANESE_UI_LABELS.update({"Multiway Assignment": "マルチウェイに割り当て", 'Measurement List & Use': '測定一覧・使用', 'Register Measurement': '測定データを登録', 'Measurement Notes': '測定条件・メモ', 'Calibration Library': '校正データ一覧・登録', 'Microphone Profiles': 'マイクプロファイル', 'Speaker Specifications': 'スピーカー仕様データベース（任意）'})
 JAPANESE_UI_LABELS.update({"Mic Library": "マイク校正データ管理", "Mic Profiles": "マイク個体管理", "Speaker Specs": "スピーカー仕様管理"})
 JAPANESE_UI_LABELS.update({
-    "Room EQ delta": "ルームEQ差分",
-    "Manage a gain delta independently of the main target. Phase and timing remain unchanged.": "メインターゲットと別に振幅差分を管理します。位相と時間基準は変更しません。",
-    "Load Room EQ delta": "ルームEQ差分を読み込む",
-    "Unable to load. The current Room EQ delta has been retained.": "読み込めませんでした。現在のルームEQ差分を保持しています。",
-    "Apply Room EQ delta to target": "ルームEQ差分を目標へ反映",
-    "Target operation": "目標への適用方法",
+    "Room acoustic correction (Room EQ)": "室内音響補正（ルームEQ）",
+    "Use a separate correction curve for frequency-response changes caused by floor and wall reflections at the listening position. Only magnitude is affected; phase and timing remain unchanged.": "床・壁などの反射による試聴位置の周波数特性の変化を、主ターゲットとは別の補正カーブで扱います。振幅だけに適用し、位相と時間基準は変更しません。",
+    "Load correction curve": "補正カーブを読み込む",
+    "Unable to load. The current correction curve has been retained.": "読み込めませんでした。現在の補正カーブを保持しています。",
+    "Apply room acoustic correction": "室内音響補正を適用",
+    "Correction curve direction": "補正カーブの適用方向",
     "Add": "加算",
     "Subtract": "減算",
     "With the 1 m reference as design input, add a reference-minus-seat correction, or subtract a seat-minus-reference change. Remove the distance-related level offset before comparing.": "1mの基準を設計入力にする場合、基準−試聴位置の補正カーブは加算、試聴位置−基準の変化量は減算します。距離による音量差を除いて比較してください。",
     "If the seat measurement is also the design input, avoid applying the same room correction twice.": "試聴位置の測定を設計入力にも使う場合は、同じルーム補正を重ねないでください。",
     "Use frequency and dB columns. The delta is 0 dB outside the input range; phase columns are ignored.": "周波数・dBの列を使用します。入力範囲外は0 dB差分とし、位相列は使用しません。",
-    "Save Room EQ delta": "ルームEQ差分を保存",
-    "Clear Room EQ delta": "ルームEQ差分を解除",
+    "Save correction curve": "補正カーブを保存",
+    "Clear correction curve": "補正カーブを解除",
+})
+JAPANESE_UI_LABELS.update({
+    'Create a correction curve in REW': 'REWで補正カーブを作る',
+    '1. After adjusting the crossover, EQ and timing, turn room correction OFF and measure a reference response. Place the microphone 1 m in front, on the axis through the midpoint between the woofer and tweeter centres, with both drivers playing. Set the gate after inspecting reflections in the IR, and merge a near-field measurement for the bass.': '1. クロスオーバー・EQ・時間合わせ後、室内音響補正をOFFにして基準特性を測定します。正面1m、ウーファーとツイーターの中心間の中点を測定軸とし、両ユニットを同時に鳴らします。IRで反射を確認してゲートを設定し、低域は近接測定と合成します。',
+    '2. Keep the speaker settings fixed and measure the seats 3–6 m away with the microphone at seated ear height. Include floor reflections at the seats instead of using the short reference gate to remove them. Measure left and right speakers separately.': '2. スピーカー側の設定を固定し、3〜6mの各席で着座時の耳の高さにマイクを置いて測定します。試聴位置は床反射を含めるため、基準測定と同じ短いゲートで反射を除去しません。左右のスピーカーは別々に測ります。',
+    '3. In REW All SPL, select the seat measurements, use Align SPL... over a reliable common frequency band, then RMS average. Match the reference and averaged response levels over the same band. Avoid phase cancellation between positions from Vector average.': '3. REWのAll SPLで試聴位置の測定を選び、Align SPL...で信頼できる共通帯域の音量をそろえてからRMS averageで平均します。基準特性と平均特性も同じ帯域でレベルを合わせます。Vector averageによる位置間の位相相殺を避けます。',
+    '4. In Trace arithmetic, set A to the reference and B to the seat average, then generate A / B. The magnitude ratio in dB is reference minus seat, giving an additive correction curve. Do not use A − B, which subtracts acoustic pressures. For magnitude-only comparison, export both windowed responses as text without phase columns and re-import them before the calculation.': '4. Trace arithmeticでAを基準特性、Bを試聴位置平均としてA / Bを生成します。振幅比のdB値は「基準−試聴位置」で、加算用の補正カーブになります。A − Bは音圧の減算なので使いません。位相を使わない比較では、窓設定済みの両応答を位相列なしのテキストへ出力・再読込してから演算します。',
+    '5. Compare smoothing of roughly 1/6 to 1/3 octave and retain trends shared by the seats. Limit boosts into deep narrow dips and exclude bands where the reference is unreliable. Edit the exported frequency/dB data to set any required limits and return the curve to 0 dB at its band edges.': '5. 1/6〜1/3オクターブの平滑化を目安に比較し、複数席に共通する傾向を残します。深く狭い谷の持上げは抑え、基準測定が信頼できない帯域は除外します。必要な上限制限と帯域端の0dBへの調整は、書き出した周波数・dBデータを編集して行います。',
+    '6. Use Export measurement as text, load the correction curve here and select Add. After enabling correction, update and export the EQ, remeasure the same seats and compare ON/OFF. This is a response file, separate from EQ filter settings text.': '6. Export measurement as textで補正カーブを出力し、ここで読み込んで「加算」を選びます。適用をONにした後はEQを更新・出力し、同じ席で再測定してON/OFFを比較します。EQフィルター設定のテキストとは別のファイルです。',
+    'This feature loads, saves and applies prepared curves to the target. It does not automatically generate differences, spatial averages, smoothing or correction limits.': '本機能は作成済みカーブの読込み・保存・目標への適用を行います。差分生成、空間平均、平滑化、補正量の上限制限は自動では行いません。',
 })
 ENGLISH_UI_LABELS: dict[str, str] = {
     japanese: english for english, japanese in JAPANESE_UI_LABELS.items()
