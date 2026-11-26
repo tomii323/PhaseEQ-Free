@@ -24,6 +24,7 @@ class TargetProcessingSettings:
     zero_missing_phase: bool = False
     lf_extension_enabled: bool = False
     hf_extension_enabled: bool = False
+    room_eq: dict | None = None
 
 
 @dataclass(frozen=True)
@@ -36,6 +37,7 @@ class TargetProcessingResult:
     gain_shift_estimate: TargetGainShiftEstimate
     generated_from_flat: bool
     messages: tuple[str, ...] = ()
+    main_response: SpeakerResponse | None = None
 
 
 def flat_target_response(sample_rate: int, analysis_fft_size: int) -> SpeakerResponse:
@@ -53,6 +55,7 @@ def process_target(
     edit_config: DesignConfig | None = None,
     response_editor: Callable[[SpeakerResponse], SpeakerResponse | None] | None = None,
 ) -> TargetProcessingResult:
+    from .room_eq import apply_room_eq
     if int(settings.sample_rate) <= 0:
         raise ValueError("sample_rate must be positive")
     generated = source is None
@@ -96,11 +99,12 @@ def process_target(
             original_response=source,
             base_response=base,
             shifted_response=shifted,
-            effective_response=inherit_support(effective, shifted),
+            effective_response=inherit_support(apply_room_eq(effective, settings.room_eq), shifted),
             applied_gain_shift_db=float(estimate.shift_db),
             gain_shift_estimate=estimate,
             generated_from_flat=generated,
             messages=("Flat Target generated",) if generated else (),
+            main_response=inherit_support(effective, shifted),
         )
     config = edit_config or DesignConfig(
         sample_rate=int(settings.sample_rate),
@@ -124,9 +128,10 @@ def process_target(
         original_response=source,
         base_response=base,
         shifted_response=shifted,
-        effective_response=effective,
+        effective_response=inherit_support(apply_room_eq(effective, settings.room_eq), shifted),
         applied_gain_shift_db=float(estimate.shift_db),
         gain_shift_estimate=estimate,
         generated_from_flat=generated,
         messages=("Flat Target generated",) if generated else (),
+        main_response=effective,
     )

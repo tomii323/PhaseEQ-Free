@@ -577,6 +577,21 @@ JAPANESE_UI_LABELS: dict[str, str] = {
 }
 JAPANESE_UI_LABELS.update({"Multiway Assignment": "マルチウェイに割り当て", 'Measurement List & Use': '測定一覧・使用', 'Register Measurement': '測定データを登録', 'Measurement Notes': '測定条件・メモ', 'Calibration Library': '校正データ一覧・登録', 'Microphone Profiles': 'マイクプロファイル', 'Speaker Specifications': 'スピーカー仕様データベース（任意）'})
 JAPANESE_UI_LABELS.update({"Mic Library": "マイク校正データ管理", "Mic Profiles": "マイク個体管理", "Speaker Specs": "スピーカー仕様管理"})
+JAPANESE_UI_LABELS.update({
+    "Room EQ delta": "ルームEQ差分",
+    "Manage a gain delta independently of the main target. Phase and timing remain unchanged.": "メインターゲットと別に振幅差分を管理します。位相と時間基準は変更しません。",
+    "Load Room EQ delta": "ルームEQ差分を読み込む",
+    "Unable to load. The current Room EQ delta has been retained.": "読み込めませんでした。現在のルームEQ差分を保持しています。",
+    "Apply Room EQ delta to target": "ルームEQ差分を目標へ反映",
+    "Target operation": "目標への適用方法",
+    "Add": "加算",
+    "Subtract": "減算",
+    "With the 1 m reference as design input, add a reference-minus-seat correction, or subtract a seat-minus-reference change. Remove the distance-related level offset before comparing.": "1mの基準を設計入力にする場合、基準−試聴位置の補正カーブは加算、試聴位置−基準の変化量は減算します。距離による音量差を除いて比較してください。",
+    "If the seat measurement is also the design input, avoid applying the same room correction twice.": "試聴位置の測定を設計入力にも使う場合は、同じルーム補正を重ねないでください。",
+    "Use frequency and dB columns. The delta is 0 dB outside the input range; phase columns are ignored.": "周波数・dBの列を使用します。入力範囲外は0 dB差分とし、位相列は使用しません。",
+    "Save Room EQ delta": "ルームEQ差分を保存",
+    "Clear Room EQ delta": "ルームEQ差分を解除",
+})
 ENGLISH_UI_LABELS: dict[str, str] = {
     japanese: english for english, japanese in JAPANESE_UI_LABELS.items()
 }

@@ -56,6 +56,7 @@ def materialize_target_response(
             manual_gain_shift_db=manual_shift,
             source_gain_only=(str(ui.get("target_source_content_mode", "Gain + Phase")) == "Gain only"),
             phase_enabled=bool(ui.get("target_phase_enabled", True)),
+            room_eq=ui.get("room_eq"),
         ),
         speaker_reference=speaker_reference,
         edit_config=config,
@@ -69,7 +70,8 @@ def materialize_target_response(
         for item in edit.get(key, [])
         if isinstance(item, Mapping)
     )
-    has_content = source_response is not None or has_edits or abs(manual_shift) > 1e-12
+    has_content = (source_response is not None or has_edits or abs(manual_shift) > 1e-12
+                   or bool((ui.get("room_eq") or {}).get("enabled", False)))
     return MaterializedTargetResponse(
         response=processing.effective_response,
         mode="Custom" if has_content else "Flat",

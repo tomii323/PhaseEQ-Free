@@ -11,6 +11,8 @@ PhaseEQ Free／Proの初版は **v2.0.0** です。現在の操作は[操作ガ�
 
 ## バージョン別の案内
 
+- [v2.0.6：ルームEQ差分の別管理](release-notes-v2.0.6.md)。振幅差分の加算／減算、ON/OFF、独立保存、測定手順を案内します。
+
 - [v2.0.5：C-DSP 8x12の192 kHz専用出力](release-notes-v2.0.5.md)。マルチウェイのPEQ／Xover分離、段数制限、オフライン検証結果を案内します。
 - [v2.0.4：miniDSP出力の独立モジュール化](release-notes-v2.0.4.md)。既存形式の維持とDevice Consoleのオフライン検証結果、読み込み時の制限を案内します。
 - [v2.0.3：CamillaDSP係数形式の読み込み](release-notes-v2.0.3.md)。DiffEq／Free係数の保持、保存復元と再出力を案内します。

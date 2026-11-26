@@ -3845,7 +3845,9 @@ def _config_payload(
         config,
         taps=_normalize_taps_value(ui_state_for_save.get("taps", config.taps)),
     )
+    from phase_fir_designer.room_eq import normalize_room_eq
     ui_payload = {
+            "room_eq": normalize_room_eq(st.session_state.get("room_eq")),
             "display_fft_multiplier": display_analysis.multiplier(st.session_state.get("display_fft_multiplier", 1)),
             "active_page": ui_state_for_save.get("active_page", "Input"),
             "project_name": ui_state_for_save.get("project_name", ""),
@@ -4141,6 +4143,8 @@ def _apply_ui_payload_to_state(payload: dict[str, Any]) -> None:
     if isinstance(ui_profile, dict):
         apply_profile_state(ui_profile)
     ui = payload.get("ui", {})
+    from ui.room_eq import restore_room_eq
+    restore_room_eq(st.session_state, ui.get("room_eq") if isinstance(ui, dict) else None)
     if not isinstance(ui, dict):
         return
     st.session_state["display_fft_multiplier"] = display_analysis.multiplier(ui.get("display_fft_multiplier", 1))
@@ -4779,6 +4783,8 @@ def _reset_project_state_to_defaults() -> None:
     st.session_state["target_lf_extension_enabled"] = False
     st.session_state["target_hf_extension_enabled"] = False
     _reset_target_edit_state()
+    from ui.room_eq import restore_room_eq
+    restore_room_eq(st.session_state)
     st.session_state["output_fir_polarity_invert"] = False
     st.session_state["fir_auto_gain_enabled"] = True
     st.session_state["output_fir_cosine_taper_enabled"] = False
@@ -19708,6 +19714,11 @@ if active_page == "Input":
         with st.expander(ui_message('ui.48cea45b6a0ab4'), icon=":material/info:"):
             st.caption(phase_center_diagnostics_text)
 
+if active_page == "Target":
+  with editor_window:
+    from ui.room_eq import render_room_eq
+    render_room_eq()
+
 if active_page == "Target" and target_locked:
   with editor_window:
     _clear_selection_preview()
@@ -20884,6 +20895,7 @@ target_pipeline_result = process_target(
         lf_extension_enabled=bool(st.session_state.get("target_lf_extension_enabled", False)),
         hf_extension_enabled=bool(st.session_state.get("target_hf_extension_enabled", False)),
         zero_missing_phase=True,
+        room_eq=st.session_state.get("room_eq"),
     ),
     speaker_reference=speaker_response,
     speaker_reference_range=input_pipeline_result.input_range_hz,
@@ -20915,12 +20927,15 @@ if target_gain_shift_estimate.message and result_pane is not None:
 target_shifted_base = target_pipeline_result.shifted_response
 if target_locked and isinstance(active_composite_assignment.target_definition, dict):
     _inherited_target = realize_target_definition(active_composite_assignment.target_definition, int(sample_rate), int(effective_analysis_fft_size))
+    from phase_fir_designer.room_eq import apply_room_eq
     target_pipeline_result = replace(target_pipeline_result, base_response=_inherited_target,
-        shifted_response=_inherited_target, effective_response=_inherited_target, applied_gain_shift_db=0.0)
-base_target_response = target_pipeline_result.effective_response
+        shifted_response=_inherited_target, main_response=_inherited_target,
+        effective_response=apply_room_eq(_inherited_target, st.session_state.get("room_eq")), applied_gain_shift_db=0.0)
+base_target_response = target_pipeline_result.main_response
+effective_base_target_response = target_pipeline_result.effective_response
 from phase_fir_designer.acoustic_target import effective_target as acoustic_effective_target, enabled as acoustic_target_enabled
 target_response = acoustic_effective_target(DesignConfig(
-    sample_rate=sample_rate, taps=standalone_design_taps, target_response=base_target_response,
+    sample_rate=sample_rate, taps=standalone_design_taps, target_response=effective_base_target_response,
     linear_fir_filters=linear_fir_filters, band_split_recipe=st.session_state.get("band_split_recipe")))
 if _level_plan.match_input_to_target:
     _reference_range = None
@@ -20977,7 +20992,11 @@ if _pending_target_session_id:
                 "hf_extension_enabled": bool(st.session_state.get("target_hf_extension_enabled", False)),
                 "target_url": str(target_url),
                 "target_response_raw": speaker_response_payload(raw_target_response),
-                "materialized_response": speaker_response_payload(target_response),
+                "materialized_response": speaker_response_payload(acoustic_effective_target(DesignConfig(
+                    sample_rate=sample_rate, taps=standalone_design_taps,
+                    target_response=target_pipeline_result.main_response,
+                    linear_fir_filters=linear_fir_filters,
+                    band_split_recipe=st.session_state.get("band_split_recipe")))),
                 "target_edit": _target_edit_payload_from_state(),
             }),
         )
@@ -21107,7 +21126,7 @@ config = DesignConfig(
     fir_auto_gain_enabled=fir_auto_gain_enabled,
     fir_fit_weighting="flat",
     speaker_response=speaker_response,
-    target_response=base_target_response,
+    target_response=effective_base_target_response,
 )
 
 from phase_fir_designer.input_state import (
