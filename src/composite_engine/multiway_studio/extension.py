@@ -699,6 +699,7 @@ def _apply_external_distance_bulk(channel_ids: tuple[str, ...]) -> None:
 def _alignment_timing_source_label(source: str) -> str:
     return {
         "phaseeq_tweeter_reference": "PhaseEQ Tweeter基準",
+        "phaseeq_grouped_tweeter_reference": "各側のTweeter基準（左右間は未調整）",
         "external_distance": "外部測定距離",
         "phase_fit": "Crossover位相推定",
     }.get(str(source), str(source) or "不明")
@@ -2561,6 +2562,12 @@ def render_composite_sidebar(
         _render_phaseeq_workspace_link("PhaseEQで開く", os.environ.get("PHASEEQ_URL", "http://localhost:8501"))
         st.caption(ui_message('ui.457dd6bee3b351'))
         _render_phaseeq_workspace_link(display_text("測定データのチャンネル選択へ"), os.environ.get("PHASEEQ_URL", "http://localhost:8501").split("?")[0] + "?page=Project")
+        from utils.multiway_measurement_plan import structure_signature
+        measurement_url = os.environ.get('PHASEEQ_URL', 'http://localhost:8501').split('?')[0] + '?' + urlencode({
+            'page': 'Measure', 'measurement': 'multiway',
+            'measure_scope': structure_signature(measurement_workspace),
+        })
+        _render_phaseeq_workspace_link(display_text('この構成をマイク測定'), measurement_url)
         if not assignment_options:
             st.caption(ui_message('ui.f4bdf73603e841'))
             return
@@ -4094,6 +4101,12 @@ def _render_system_phase_alignment_controls(
                         external_distances
                         if timing_source == "外部測定距離" else None
                     ),
+                    independent_reference_groups=(
+                        {cid: str(row['group']) for cid, row in row_by_id.items()}
+                        if any(isinstance(row.get('timing_provenance'), dict)
+                               and row['timing_provenance'].get('reference_group')
+                               for row in row_by_id.values()) else None
+                    ),
                 )
                 if automatic_structure:
                     proposal = replace(proposal,
@@ -4324,7 +4337,9 @@ def render_composite_results(
         st.session_state.get("composite_studio_channels", []),
         st.session_state.get("settings", {}), sample_rate_hz=int(sample_rate_hz),
     )
-    if timing_status.source == "phaseeq_tweeter_reference" and timing_status.complete:
+    if timing_status.source == "phaseeq_grouped_tweeter_reference" and timing_status.complete:
+        st.caption(display_text('時間基準：各側のTweeter基準。左右間の到達差は未調整です。'))
+    elif timing_status.source == "phaseeq_tweeter_reference" and timing_status.complete:
         st.caption(ui_message('ui.bc43359ff85fb8'))
     elif timing_status.source == "external_distance":
         st.caption(ui_message('ui.223bba3646c328') if timing_status.complete else timing_status.warning)

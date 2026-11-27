@@ -74,7 +74,7 @@ def previous_values(state, prefix, row, *, time_only):
 def apply_channel(state, prefix, proposal, *, time_only, timing_source="phase_fit"):
     state[f"{prefix}_auto_alignment_delay"] = proposal.dsp_delay_samples
     state[f"{prefix}_auto_alignment_measurement_delay_samples"] = (
-        proposal.dsp_delay_samples if timing_source in ("phaseeq_tweeter_reference", "external_distance") else 0.0
+        proposal.dsp_delay_samples if timing_source in ("phaseeq_tweeter_reference", "phaseeq_grouped_tweeter_reference", "external_distance") else 0.0
     )
     if not time_only:
         state[f"{prefix}_auto_alignment_allpass"] = [section.to_dict() for section in proposal.allpass_sections]

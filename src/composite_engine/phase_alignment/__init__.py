@@ -111,6 +111,7 @@ def analyze_system_phase_alignment(
     acoustic_targets: tuple[bool, ...] = (),
     timing_provenance_by_channel: dict[str, object] | None = None,
     external_distances_m_by_channel: dict[str, float] | None = None,
+    independent_reference_groups: dict[str, str] | None = None,
 ) -> SystemPhaseAlignmentProposal:
     """Analyze all branches, then causalize every physical Channel once."""
     if not branches:
@@ -134,7 +135,19 @@ def analyze_system_phase_alignment(
             external_distances_m_by_channel,
             sample_rate_hz=int(sample_rate_hz),
         )
-    authoritative_timing = distance_timing is not None or trusted_arrivals is not None
+    from measurement_reference_groups import independent_reference_delays
+    grouped_delays = (independent_reference_delays(
+        tuple(channel_order), timing_provenance_by_channel or {}, independent_reference_groups,
+        sample_rate_hz=int(sample_rate_hz),
+    ) if independent_reference_groups is not None and trusted_arrivals is None and distance_timing is None else None)
+    if independent_reference_groups is not None and grouped_delays is None and trusted_arrivals is None and distance_timing is None:
+        raise ValueError('左右別の測定時間差が揃っていません。各側の基準・全ウェイを確認してください。')
+    if grouped_delays is not None and any(
+        len({independent_reference_groups[c] for c in branch.ordered_channels}) != 1
+        for branch in branches
+    ):
+        raise ValueError('異なる時間基準をまたぐ分岐は左右別の測定整合に使用できません。')
+    authoritative_timing = distance_timing is not None or trusted_arrivals is not None or grouped_delays is not None
     proposals: list[tuple[AlignmentBranch, PhaseAlignmentProposal]] = []
     for branch in branches:
         if len(branch.ordered_channels) < 2:
@@ -216,6 +229,16 @@ def analyze_system_phase_alignment(
             "同一SessionのPhaseEQ Tweeter基準・相対到達時間を最優先で適用しました"
         )
         confidence = "High"
+    elif grouped_delays is not None:
+        dsp_delays = grouped_delays
+        quantized_offset = 0.0
+        timing_source = 'phaseeq_grouped_tweeter_reference'
+        reference_channel = ' / '.join(dict.fromkeys(
+            normalize_timing_provenance(timing_provenance_by_channel[c]).reference_tweeter_channel_id
+            for c in channel_order
+        ))
+        warnings.append('各グループの基準に対して時間差を適用しました。左右間の到達差は調整していません。')
+        confidence = 'High'
     else:
         if timing_provenance_by_channel and any(
             value is not None for value in timing_provenance_by_channel.values()

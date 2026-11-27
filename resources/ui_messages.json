@@ -17198,5 +17198,240 @@
     "source": "miniDSP Advanced Biquad形式です。2x4 HD (48kHz)は48 kHz、2x4 HDは96 kHzで生成してください。PEQ → Menu ON → LOAD BIQUADS FILEで読み込みます。1ブロックは10段までです。残りのEQは変更されないため確認してください。",
     "ja": "miniDSP Advanced Biquad形式です。2x4 HD (48kHz)は48 kHz、2x4 HDは96 kHzで生成してください。PEQ → Menu ON → LOAD BIQUADS FILEで読み込みます。1ブロックは10段までです。残りのEQは変更されないため確認してください。",
     "en": "miniDSP Advanced Biquad format. Generate at 48 kHz for 2x4 HD (48kHz) or 96 kHz for 2x4 HD. Load via PEQ → Menu ON → LOAD BIQUADS FILE. Each PEQ block holds 10 sections; check any remaining EQ slots because they are unchanged."
+  },
+  "ui.fa096b2ccc3758": {
+    "source": "マルチウェイ構成から測定",
+    "ja": "マルチウェイ構成から測定",
+    "en": "Measure a Multiway configuration"
+  },
+  "ui.cce382e3b3aad1": {
+    "source": "今回の測定対象",
+    "ja": "今回の測定対象",
+    "en": "Current measurement target"
+  },
+  "ui.16acd38980d45a": {
+    "source": "今回のマイク位置と実出力経路を確認した",
+    "ja": "今回のマイク位置と実出力経路を確認した",
+    "en": "I checked the microphone position and physical output route"
+  },
+  "ui.fbae7e8638917c": {
+    "source": "今回の測定を準備",
+    "ja": "今回の測定を準備",
+    "en": "Prepare this measurement"
+  },
+  "ui.9d03b9c0a42486": {
+    "source": "選択対象の保存結果をマルチウェイへ割り当て",
+    "ja": "選択対象の保存結果をマルチウェイへ割り当て",
+    "en": "Assign the selected saved result to Multiway"
+  },
+  "ui.857bce2f36ad9f": {
+    "source": "測定計画を閉じる（保存結果を保持）",
+    "ja": "測定計画を閉じる（保存結果を保持）",
+    "en": "Close the measurement plan (keep saved results)"
+  },
+  "ui.2d010f30dbaa47": {
+    "source": "先にマルチウェイで構成を設定・保存してください。",
+    "ja": "先にマルチウェイで構成を設定・保存してください。",
+    "en": "Set up and save a Multiway configuration first."
+  },
+  "ui.e824f1d66b50ef": {
+    "source": "プロジェクト：",
+    "ja": "プロジェクト：",
+    "en": "Project: "
+  },
+  "ui.68fb86c9cfb790": {
+    "source": "測定目的",
+    "ja": "測定目的",
+    "en": "Measurement purpose"
+  },
+  "ui.91bcbd78ac3ac1": {
+    "source": "FRD保存フォルダー（既存のフォルダー）",
+    "ja": "FRD保存フォルダー（既存のフォルダー）",
+    "en": "FRD output folder (existing folder)"
+  },
+  "ui.4deefc75c901f4": {
+    "source": "保存する応答",
+    "ja": "保存する応答",
+    "en": "Response to save"
+  },
+  "ui.f0345692344b9e": {
+    "source": "この構成で測定計画を作成",
+    "ja": "この構成で測定計画を作成",
+    "en": "Create a measurement plan for this configuration"
+  },
+  "ui.db9d181b9ef769": {
+    "source": "時間基準：",
+    "ja": "時間基準：",
+    "en": "Timing reference: "
+  },
+  "ui.5b43f4bb579da3": {
+    "source": "全ウェイを保存しました。左右の時間基準は独立しています。",
+    "ja": "全ウェイを保存しました。左右の時間基準は独立しています。",
+    "en": "All ways are saved. Left and right timing references are independent."
+  },
+  "ui.a2123e1b193ea2": {
+    "source": "対象を選んで割り当てます。調整後の確認測定は入力応答へ割り当てません。",
+    "ja": "対象を選んで割り当てます。調整後の確認測定は入力応答へ割り当てません。",
+    "en": "Select a target to assign its result. Verification measurements are not assigned as input responses."
+  },
+  "ui.b8018b1b9c1fcd": {
+    "source": "取得済み原本があります。下の保存ボタンで再試行できます。再収録は不要です。",
+    "ja": "取得済み原本があります。下の保存ボタンで再試行できます。再収録は不要です。",
+    "en": "The captured original is retained. Retry with the save button below; no new capture is needed."
+  },
+  "ui.29350189f97c74": {
+    "source": "保存した測定計画を再開",
+    "ja": "保存した測定計画を再開",
+    "en": "Resume the saved measurement plan"
+  },
+  "ui.499296e29d4257": {
+    "source": "結果を保持して計画を閉じる",
+    "ja": "結果を保持して計画を閉じる",
+    "en": "Close the plan and retain results"
+  },
+  "ui.70e39859279e3d": {
+    "source": "状態",
+    "ja": "状態",
+    "en": "Status"
+  },
+  "ui.c8379b29289e23": {
+    "source": "実出力",
+    "ja": "実出力",
+    "en": "Physical output"
+  },
+  "ui.283bcb6cc2e045": {
+    "source": "時間差 [ms]",
+    "ja": "時間差 [ms]",
+    "en": "Arrival difference [ms]"
+  },
+  "ui.b0c32eaeec9054": {
+    "source": "未測定",
+    "ja": "未測定",
+    "en": "Not measured"
+  },
+  "ui.90f427bbd0123a": {
+    "source": "次のウェイへ",
+    "ja": "次のウェイへ",
+    "en": "Next way"
+  },
+  "ui.0c4e68902ebac9": {
+    "source": "次の側の測定へ",
+    "ja": "次の側の測定へ",
+    "en": "Measure the next side"
+  },
+  "ui.fcea766ca36003": {
+    "source": "FRD保存先を修正",
+    "ja": "FRD保存先を修正",
+    "en": "Change the FRD destination"
+  },
+  "ui.0d07f18e61bdb4": {
+    "source": "再試行の保存フォルダー",
+    "ja": "再試行の保存フォルダー",
+    "en": "Output folder for retry"
+  },
+  "ui.3c3b4617e00d61": {
+    "source": "再試行の先頭文字列",
+    "ja": "再試行の先頭文字列",
+    "en": "Filename prefix for retry"
+  },
+  "ui.25ccbe3a3a7f44": {
+    "source": "割当送信済みです。マルチウェイ側の受信と再計算を確認してください。",
+    "ja": "割当送信済みです。マルチウェイ側の受信と再計算を確認してください。",
+    "en": "Assignment sent. Check reception and recalculation in Multiway."
+  },
+  "ui.d4a3392d02fe43": {
+    "source": "基準ウェイ：",
+    "ja": "基準ウェイ：",
+    "en": "Reference way: "
+  },
+  "ui.59b1000bd6b895": {
+    "source": "ユニット特性の取得",
+    "ja": "ユニット特性の取得",
+    "en": "Capture driver characteristics"
+  },
+  "ui.397cc62acf9ca5": {
+    "source": "調整後の確認",
+    "ja": "調整後の確認",
+    "en": "Verify the adjusted system"
+  },
+  "ui.19ee37e8f04237": {
+    "source": "ゲートあり（スピーカー基準）",
+    "ja": "ゲートあり（スピーカー基準）",
+    "en": "Gated (speaker reference)"
+  },
+  "ui.4397ff848c2ea7": {
+    "source": "反射を含む応答",
+    "ja": "反射を含む応答",
+    "en": "Response including reflections"
+  },
+  "ui.995020e883d825": {
+    "source": "実出力経路：",
+    "ja": "実出力経路：",
+    "en": "Physical output route: "
+  },
+  "ui.29765555b6986f": {
+    "source": "例：DAC Out 3 → 左ウーファー。外部DSPで対象へ切替",
+    "ja": "例：DAC Out 3 → 左ウーファー。外部DSPで対象へ切替",
+    "en": "Example: DAC Out 3 → Left woofer. Select the target using the external DSP."
+  },
+  "ui.e9370777c65e3d": {
+    "source": "同じ側の測定中はマイクを固定します。左右を切り替えるときは、測定軸・距離・高さ・向きを揃えてください。2ウェイの基準例はウーファーとツイーターの中心、前方1 mです。",
+    "ja": "同じ側の測定中はマイクを固定します。左右を切り替えるときは、測定軸・距離・高さ・向きを揃えてください。2ウェイの基準例はウーファーとツイーターの中心、前方1 mです。",
+    "en": "Keep the microphone fixed while measuring one side. Match the axis, distance, height and orientation when changing sides. A two-way reference example is 1 m in front of the midpoint between woofer and tweeter."
+  },
+  "ui.b272e22f8e5163": {
+    "source": "ゲート時間は下の詳細設定で指定します。校正・入力ゲイン・出力経路・保護条件の確認は各開始前に必要です。",
+    "ja": "ゲート時間は下の詳細設定で指定します。校正・入力ゲイン・出力経路・保護条件の確認は各開始前に必要です。",
+    "en": "Set the gate in the detailed controls below. Check calibration, input gain, routing and driver protection before every capture."
+  },
+  "ui.177c86e2f0e2e9": {
+    "source": "基準マーカーと対象ESSは別経路で再生します。実出力との接続を確認してください。共有SUBなど共通基準を確保できない対象は、この連続測定では開始しないでください。",
+    "ja": "基準マーカーと対象ESSは別経路で再生します。実出力との接続を確認してください。共有SUBなど共通基準を確保できない対象は、この連続測定では開始しないでください。",
+    "en": "Play the reference marker and target ESS through separate routes. Check the physical connections. Do not start this sequence for targets without a common reference, such as a shared subwoofer."
+  },
+  "ui.3f99899ae6837d": {
+    "source": "測定計画へ保存しました。外部再生を停止し、上の一覧で次のウェイを選んでください。",
+    "ja": "測定計画へ保存しました。外部再生を停止し、上の一覧で次のウェイを選んでください。",
+    "en": "Saved to the measurement plan. Stop external playback and select the next way in the list above."
+  },
+  "ui.0190ea9e3398df": {
+    "source": "この構成をマイク測定",
+    "ja": "この構成をマイク測定",
+    "en": "Measure this configuration"
+  },
+  "ui.18a97cf8bc6d3f": {
+    "source": "品質条件を満たしたため収録を終了しています。外部プレーヤーは完了後に停止してください。",
+    "ja": "品質条件を満たしたため収録を終了しています。外部プレーヤーは完了後に停止してください。",
+    "en": "Quality requirements are met; capture is ending. Stop the external player after completion."
+  },
+  "ui.ec5ca6cdd20b6c": {
+    "source": "時間基準：各側のTweeter基準。左右間の到達差は未調整です。",
+    "ja": "時間基準：各側のTweeter基準。左右間の到達差は未調整です。",
+    "en": "Timing: separate tweeter references for each side. Left-to-right arrival differences are not adjusted."
+  },
+  "ui.68001ec46a613a": {
+    "source": "起動元の構成と現在の構成が異なります。測定元のマルチウェイから開き直してください。",
+    "ja": "起動元の構成と現在の構成が異なります。測定元のマルチウェイから開き直してください。",
+    "en": "The launch configuration differs from the current configuration. Reopen measurement from the source Multiway project."
+  },
+  "ui.90458318b08ab7": {
+    "source": "保存する応答：",
+    "ja": "保存する応答：",
+    "en": "Response to save: "
+  },
+  "ui.da9d0c5bd81063": {
+    "source": "割当状態",
+    "ja": "割当状態",
+    "en": "Assignment status"
+  },
+  "ui.5f68ea44d6b212": {
+    "source": "未割当",
+    "ja": "未割当",
+    "en": "Not assigned"
+  },
+  "ui.a56a1e788cb996": {
+    "source": "受信状態を更新",
+    "ja": "受信状態を更新",
+    "en": "Refresh reception status"
   }
 }

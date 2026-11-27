@@ -1,6 +1,6 @@
 # PhaseEQ
 
-リリースバージョン: **v2.0.10**
+リリースバージョン: **v2.0.11**
 
 文書更新日: **2026-11-27**
 
@@ -46,7 +46,8 @@ FIR OFFでもIIRによる設計を続けられます。FIRイコライザーの�
 | [出力ファイル仕様](docs/distribution/output-format.md) | FIR／IIR係数、作業保存、DSP用パッケージ |
 | [インストールガイド](docs/distribution/installation.md) | 導入・更新・起動 |
 | [更新履歴](docs/distribution/history.md) | v2.0.0からのFree／Proの履歴と旧版の参照先 |
-| [v2.0.10 更新案内](docs/distribution/release-notes-v2.0.10.md) | 測点自動保存、OS入力ゲイン、UMIK-2内部PGAと実機未確認事項 |
+| [マルチウェイ構成からマイク測定する](docs/distribution/multiway-microphone-measurement.md) | 基準ツイーターから各ウェイ・左右へ進む測定、保存、割り当てと復旧 |
+| [v2.0.11 更新案内](docs/distribution/release-notes-v2.0.11.md) | 構成に沿ったマイク測定、左右別時間基準と実機未確認事項 |
 | [v2.0.5 更新案内](docs/distribution/release-notes-v2.0.5.md) | C-DSP 8x12（192 kHz）のマルチウェイ専用出力 |
 | [v2.0.2 更新案内](docs/distribution/release-notes-v2.0.2.md) | REW IIR／CamillaDSP対応とマルチウェイ出力修正 |
 | [v2.0.1 更新案内](docs/distribution/release-notes-v2.0.1.md) | REW PEQテキストの読み込み・出力 |

@@ -2410,6 +2410,8 @@ def _start_engine(
         **settings_kwargs,
     )
     from ui.guided_measurement_view import release_audio_downloads_before_capture
+    from ui.multiway_measurement import bind_capture, capture_started
+    bind_capture(settings)
     release_audio_downloads_before_capture()
     engine = ContinuousMeasurementEngine(
         settings,
@@ -2426,6 +2428,7 @@ def _start_engine(
     st.session_state[ENGINE_KEY] = engine
     st.session_state[UNSAVED_KEY] = True
     engine.start()
+    capture_started(engine.snapshot())
 
 
 def _render_shot_diagnostics(
@@ -2992,6 +2995,11 @@ def render_measurement_results(*, measurement_db_path: Path) -> None:
             ),
             require_high_precision=True,
         )
+    from ui.multiway_measurement import active_capture
+    if not terminal and high_precision_ready and active_capture(snapshot):
+        st.session_state['_multiway_measurement_capture']['quality_stop_requested'] = True
+        engine.request_stop()
+        st.info(display_text('品質条件を満たしたため収録を終了しています。外部プレーヤーは完了後に停止してください。'))
     if terminal:
         if selected_result_id == "standard" and snapshot.standard_result is not None:
             comparison = (snapshot.standard_result.frequency_hz, snapshot.standard_result.merged_complex_response)
@@ -3099,8 +3107,15 @@ def render_measurement_results(*, measurement_db_path: Path) -> None:
             list(snapshot.valid_shots),
         )
         st.markdown(ui_message('ui.b43c09f277c002'))
-        st.caption(ui_message('ui.fb9bc26e40d42f'))
+        if st.session_state.get('_multiway_measurement_capture', {}).get('session_id') == snapshot.session_id:
+            st.caption(display_text('保存する応答：') + display_text(
+                'ゲートあり（スピーカー基準）' if st.session_state['_multiway_measurement_plan']['response_kind'] == 'gated'
+                else '反射を含む応答'))
+        else:
+            st.caption(ui_message('ui.fb9bc26e40d42f'))
         measurement_name_key = f"ess_db_name_{snapshot.session_id}"
+        from ui.multiway_measurement import result_defaults
+        result_defaults(snapshot)
         st.session_state.setdefault(measurement_name_key, f"ESS {date.today().isoformat()}")
         measurement_name = st.text_input(
             ui_message('ui.e98017ab1725d0'),
@@ -3164,21 +3179,50 @@ def render_measurement_results(*, measurement_db_path: Path) -> None:
             if measurement_scope == "combined_room" or channel == "L+R":
                 intended_use = "verification_only"
                 st.caption(ui_message('ui.cf487b6eb6e92e'))
-        if localized_button(
+        save_requested = localized_button(
             st,
             ui_message('ui.d8e0a9cad5af76'),
             type="primary",
             width="stretch",
-            disabled=not measurement_ready,
+            disabled=not measurement_ready or (active_capture(snapshot) and st.session_state['_multiway_measurement_capture'].get('saved', False)),
             help=None if measurement_ready else "測定OKになってから登録できます。",
-        ):
+        )
+        from ui.multiway_measurement import active_capture
+        plan_binding = st.session_state.get('_multiway_measurement_capture', {})
+        automatic_save = bool(active_capture(snapshot) and high_precision_ready
+                              and plan_binding.get('quality_stop_requested')
+                              and snapshot.state == MeasurementState.STOPPED_WITH_RESULTS
+                              and not snapshot.error_message
+                              and not plan_binding.get('save_attempted'))
+        if save_requested or automatic_save:
+            if active_capture(snapshot):
+                plan_binding['save_attempted'] = True
+                if plan_binding.get('record_id'):
+                    from ui.multiway_measurement import result_saved
+                    try:
+                        result_saved(snapshot, get_measurement(measurement_db_path, plan_binding['record_id']))
+                        st.rerun()
+                    except (ValueError, OSError) as exc:
+                        st.error(str(exc))
+                    return
             try:
                 original = attach_calibration_sources(original_from_snapshot(snapshot), measurement_db_path)
+                if active_capture(snapshot):
+                    binding = st.session_state['_multiway_measurement_capture']
+                    plan = st.session_state['_multiway_measurement_plan']
+                    original = replace(original, metadata={**original.metadata, 'multiway_measurement': {
+                        **binding, 'target': dict(plan['steps'][binding['index']]),
+                        'purpose': plan['purpose'], 'response_kind': plan['response_kind'],
+                    }})
                 db_precision = result_from_original(original)
             except (ValueError, OSError) as exc:
                 st.error(ui_message('ui.b19dcb00ba2aa8', p0=f'{exc}'))
                 return
             response = (db_precision.frequency_hz, db_precision.merged_complex_response)
+            if active_capture(snapshot):
+                response_kind = st.session_state['_multiway_measurement_plan']['response_kind']
+                response = (db_precision.frequency_hz,
+                            getattr(db_precision, response_kind + '_complex_response'))
             if response is None:
                 st.error(ui_message('ui.5d9e9a5d50d09f'))
             else:
@@ -3201,6 +3245,8 @@ def render_measurement_results(*, measurement_db_path: Path) -> None:
                     phase_deg=np.rad2deg(np.unwrap(np.angle(complex_response))).tolist(),
                 )
                 payload = speaker_response_payload(speaker)
+                if active_capture(snapshot):
+                    payload['multiway_measurement'] = dict(st.session_state['_multiway_measurement_capture'])
                 measurement_record_id = str(uuid.uuid4())
                 is_precision = high_precision_ready
                 timing_provenance: dict[str, object] | None = None
@@ -3277,6 +3323,9 @@ def render_measurement_results(*, measurement_db_path: Path) -> None:
                             repr(snapshot.settings).encode("utf-8")
                         ).hexdigest(),
                     ).to_dict()
+                    if active_capture(snapshot):
+                        binding = st.session_state['_multiway_measurement_capture']
+                        timing_provenance['reference_group'] = st.session_state['_multiway_measurement_plan']['steps'][binding['index']]['group']
                     payload["timing_provenance"] = timing_provenance
                     if not arrival_valid:
                         st.warning(
@@ -3394,7 +3443,9 @@ def render_measurement_results(*, measurement_db_path: Path) -> None:
                     "ir_sample_rate_hz": snapshot.settings.sample_rate,
                 }
                 try:
-                    save_measurement(
+                    if active_capture(snapshot):
+                        payload['measurement_session']['response_kind'] = st.session_state['_multiway_measurement_plan']['response_kind']
+                    saved_record = save_measurement(
                         measurement_db_path,
                         original=original,
                         record=SpeakerMeasurementRecord(
@@ -3407,7 +3458,8 @@ def render_measurement_results(*, measurement_db_path: Path) -> None:
                             channel=str(channel).strip(),
                             position_name=str(position_name).strip(),
                             system_state=str(system_state).strip(),
-                            intended_use=str(intended_use or "correction_input"),
+                            intended_use=(st.session_state['_multiway_measurement_plan']['purpose']
+                                          if active_capture(snapshot) else str(intended_use or "correction_input")),
                             microphone=(
                                 f"{snapshot.device_info.get('name', 'USB measurement microphone')} "
                                 f"S/N {snapshot.settings.microphone_serial_number}"
@@ -3428,6 +3480,13 @@ def render_measurement_results(*, measurement_db_path: Path) -> None:
                     st.error(ui_message('ui.8d44fa6d846e02', p0=f'{exc}'))
                     return
                 st.session_state[UNSAVED_KEY] = False
+                if active_capture(snapshot):
+                    plan_binding['record_id'] = saved_record.id
+                    from ui.multiway_measurement import result_saved
+                    try:
+                        result_saved(snapshot, saved_record)
+                    except (ValueError, OSError) as exc:
+                        st.error(str(exc))
                 try:
                     released_bytes = cleanup_measurement_autosave(snapshot)
                 except (OSError, ValueError) as exc:
@@ -3439,6 +3498,8 @@ def render_measurement_results(*, measurement_db_path: Path) -> None:
                     st.success(
                         ui_message('ui.9625d985d6ae9c', p0=f'{released_mb:.1f}')
                     )
+                if active_capture(snapshot) and plan_binding.get('saved'):
+                    st.rerun()
 
 
 def _resolve_minidsp_level_calibration(

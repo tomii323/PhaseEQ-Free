@@ -131,6 +131,18 @@ def resolve_speaker_timing_projection(
     trusted = trusted_relative_arrivals(
         ids, provenance, sample_rate_hz=int(sample_rate_hz),
     )
+    grouped = False
+    if trusted is None:
+        from measurement_reference_groups import independent_reference_delays
+        groups = {_channel_id(row): str(row.get('group', '')) for row in rows}
+        tagged = all(isinstance(provenance[c], Mapping)
+                     and provenance[c].get('reference_group') == groups[c] for c in ids)
+        if tagged and independent_reference_delays(ids, provenance, groups, sample_rate_hz=sample_rate_hz) is not None:
+            trusted = {}
+            for group in dict.fromkeys(groups.values()):
+                members = tuple(c for c in ids if groups[c] == group)
+                trusted.update(trusted_relative_arrivals(members, provenance, sample_rate_hz=sample_rate_hz))
+            grouped = True
     if trusted is None:
         return SpeakerTimingProjection(
             "none", {}, False,
@@ -145,7 +157,7 @@ def resolve_speaker_timing_projection(
         if samples is None:
             return SpeakerTimingProjection("none", {}, False)
         restored[channel_id] = float(samples)
-    return SpeakerTimingProjection("phaseeq_tweeter_reference", restored, True,
+    return SpeakerTimingProjection("phaseeq_grouped_tweeter_reference" if grouped else "phaseeq_tweeter_reference", restored, True,
                                    arrivals_by_channel=trusted)
 
 

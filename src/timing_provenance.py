@@ -34,6 +34,7 @@ class TimingProvenance:
     measurement_recipe_hash: str = ""
     schema_version: int = TIMING_PROVENANCE_SCHEMA_VERSION
     phase_origin: str = "measured"
+    reference_group: str = ""
     p0_removed_delay_ms: float = 0.0
     response_hash: str = ""
     center_method: str = ""
@@ -90,6 +91,7 @@ def normalize_timing_provenance(payload: Any) -> TimingProvenance | None:
         if not np.isfinite(relative_ms) and sample_rate > 0 and np.isfinite(relative_samples):
             relative_ms = relative_samples * 1_000.0 / sample_rate
         return TimingProvenance(
+            reference_group=str(payload.get('reference_group', '')),
             schema_version=version,
             timing_reference_kind=str(payload.get("timing_reference_kind", "unknown")),
             timing_reference_session_id=str(payload.get("timing_reference_session_id", "")),
