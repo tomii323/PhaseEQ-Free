@@ -744,6 +744,8 @@ def render_measurement_controls(
     ess_reference_db_path: Path,
 ) -> None:
     _hydrate_ess_reference_library_from_db(ess_reference_db_path)
+    from ui.multiway_measurement import planned_timing
+    plan_timing = planned_timing()
     pending_restored_settings = st.session_state.pop("_ess_pending_restored_settings", None)
     if st.session_state.get("ess_measure_gate_default_revision") != 1:
         if pending_restored_settings is None:
@@ -1347,7 +1349,7 @@ def render_measurement_controls(
             disabled=running,
         )
         st.markdown(ui_message('ui.e573d1867f3235'))
-        reference_mode_label = localized_segmented_control(
+        reference_mode_label = plan_timing['ess_measure_reference_mode'] if plan_timing else localized_segmented_control(
             ui_message('ui.aa5925c1b52a95'),
             [
                 "IR peak — external ESS",
@@ -1470,7 +1472,7 @@ def render_measurement_controls(
                 ) == "phaseeq_tweeter_reference":
                     rejected_reference_count += 1
             with st.container(border=True):
-                timing_reference_role_label = localized_segmented_control(
+                timing_reference_role_label = plan_timing['ess_measure_timing_role'] if plan_timing else localized_segmented_control(
                     ui_message('ui.1fe060d98ac071'),
                     ["Reference Tweeter", "Target Speaker"],
                     key="ess_measure_timing_role",
@@ -1483,17 +1485,17 @@ def render_measurement_controls(
                     else "target_speaker"
                 )
                 if timing_reference_role == "reference_tweeter":
-                    timing_reference_session_id = st.text_input(
+                    timing_reference_session_id = (plan_timing['ess_measure_timing_session_id'] if plan_timing else st.text_input(
                         ui_message('ui.e0e62657ad70bc'),
                         key="ess_measure_timing_session_id",
                         disabled=running,
                         help=ui_message('ui.abecb5916eb6ff'),
-                    ).strip()
-                    reference_tweeter_channel_id = st.text_input(
+                    )).strip()
+                    reference_tweeter_channel_id = (plan_timing['ess_measure_reference_tweeter_channel'] if plan_timing else st.text_input(
                         ui_message('ui.cdb694ab31e124'),
                         key="ess_measure_reference_tweeter_channel",
                         disabled=running,
-                    ).strip()
+                    )).strip()
                     timing_reference_ready = bool(
                         timing_reference_session_id and reference_tweeter_channel_id
                     )
@@ -1501,6 +1503,7 @@ def render_measurement_controls(
                 else:
                     candidate_ids = ["", *reference_records]
                     requested_reference_id = str(
+                        plan_timing['ess_measure_reference_measurement_id'] if plan_timing else
                         st.session_state.get("ess_measure_reference_measurement_id", "")
                     ).strip()
                     reference_selection_context = hashlib.sha256(
@@ -1522,7 +1525,7 @@ def render_measurement_controls(
                         st.session_state["ess_measure_reference_measurement_id"] = ""
                     reference_auto_selected = False
                     if (
-                        not missing_requested_reference
+                        not plan_timing and not missing_requested_reference
                         and not st.session_state.get("ess_measure_reference_measurement_id")
                         and st.session_state.get(
                             "_ess_reference_auto_selection_context"
@@ -1542,7 +1545,9 @@ def render_measurement_controls(
                     st.session_state[
                         "_ess_reference_auto_selection_context"
                     ] = reference_selection_context
-                    selected_reference_id = st.selectbox(
+                    selected_reference_id = (
+                        (requested_reference_id if not missing_requested_reference else '')
+                        if plan_timing else st.selectbox(
                         ui_message('ui.1aa1d1a9c364df'),
                         candidate_ids,
                         key="ess_measure_reference_measurement_id",
@@ -1551,7 +1556,7 @@ def render_measurement_controls(
                             "基準測定を選択"
                             if not value else reference_records[value][0].name
                         ),
-                    )
+                    ))
                     if missing_requested_reference:
                         st.warning(
                             ui_message('ui.df112a4c3c92b9')
@@ -3117,69 +3122,79 @@ def render_measurement_results(*, measurement_db_path: Path) -> None:
         from ui.multiway_measurement import result_defaults
         result_defaults(snapshot)
         st.session_state.setdefault(measurement_name_key, f"ESS {date.today().isoformat()}")
-        measurement_name = st.text_input(
-            ui_message('ui.e98017ab1725d0'),
-            key=measurement_name_key,
-        )
-        st.session_state.setdefault(f"ess_db_scope_{snapshot.session_id}", "system_channel")
-        st.session_state.setdefault(f"ess_db_channel_{snapshot.session_id}", "")
-        st.session_state.setdefault(f"ess_db_use_{snapshot.session_id}", "correction_input")
-        scope_cols = st.columns([0.28, 0.28, 0.18, 0.26])
-        with scope_cols[0]:
-            measurement_scope = localized_segmented_control(
-                ui_message('ui.978354db0c00fc'),
-                ["system_channel", "combined_room"],
-                format_func=lambda value: {
-                    "system_channel": "System",
-                    "combined_room": "L+R",
-                }.get(str(value), str(value)),
-                key=f"ess_db_scope_{snapshot.session_id}",
-                help=ui_message('ui.c888060da93398'),
-                width="stretch",
+        from ui.multiway_measurement import planned_result_fields
+        plan_fields = planned_result_fields(snapshot)
+        if plan_fields is not None:
+            measurement_name = plan_fields['measurement_name']
+            measurement_scope = plan_fields['measurement_scope']
+            system_name, channel = plan_fields['system_name'], plan_fields['channel']
+            position_name, system_state = plan_fields['position_name'], plan_fields['system_state']
+            intended_use = plan_fields['intended_use']
+            st.caption(f"{measurement_name} / {system_name} / {channel}")
+        else:
+            measurement_name = st.text_input(
+                ui_message('ui.e98017ab1725d0'),
+                key=measurement_name_key,
             )
-        with scope_cols[1]:
-            system_name = st.text_input(
-                ui_message('ui.6725e7bbcd28f3'),
-                key=f"ess_db_system_{snapshot.session_id}",
-                placeholder=ui_message('ui.0a63c2e462f0f8'),
-            )
-        with scope_cols[2]:
-            channel = st.selectbox(
-                ui_message('ui.ce4683e7013a18'),
-                ["", "Left", "Right", "Center", "Mono", "L+R"],
-                key=f"ess_db_channel_{snapshot.session_id}",
-                help=ui_message('ui.7acadeeac7f931'),
-            format_func=localized_formatter(str))
-        with scope_cols[3]:
-            position_name = st.text_input(
-                ui_message('ui.6d031af10da7a2'),
-                key=f"ess_db_position_{snapshot.session_id}",
-                placeholder=ui_message('ui.c5ad34d720f0c8'),
-            )
-        state_cols = st.columns([0.5, 0.5])
-        with state_cols[0]:
-            system_state = st.text_input(
-                ui_message('ui.ea70af6da7f40e'),
-                key=f"ess_db_state_{snapshot.session_id}",
-                placeholder=ui_message('ui.e49800da50b425'),
-            )
-        with state_cols[1]:
-            intended_use = localized_segmented_control(
-                ui_message('ui.c36d819e7bc6d2'),
-                ["correction_input", "verification_only", "archive"],
-                format_func=lambda value: {
-                    "correction_input": "Correction",
-                    "verification_only": "Check",
-                    "archive": "Archive",
-                }.get(str(value), str(value)),
-                key=f"ess_db_use_{snapshot.session_id}",
-                help=ui_message('ui.a48d8639a8395b'),
-                width="stretch",
-            )
-            if measurement_scope == "combined_room" or channel == "L+R":
-                intended_use = "verification_only"
-                st.caption(ui_message('ui.cf487b6eb6e92e'))
-        save_requested = localized_button(
+            st.session_state.setdefault(f"ess_db_scope_{snapshot.session_id}", "system_channel")
+            st.session_state.setdefault(f"ess_db_channel_{snapshot.session_id}", "")
+            st.session_state.setdefault(f"ess_db_use_{snapshot.session_id}", "correction_input")
+            scope_cols = st.columns([0.28, 0.28, 0.18, 0.26])
+            with scope_cols[0]:
+                measurement_scope = localized_segmented_control(
+                    ui_message('ui.978354db0c00fc'),
+                    ["system_channel", "combined_room"],
+                    format_func=lambda value: {
+                        "system_channel": "System",
+                        "combined_room": "L+R",
+                    }.get(str(value), str(value)),
+                    key=f"ess_db_scope_{snapshot.session_id}",
+                    help=ui_message('ui.c888060da93398'),
+                    width="stretch",
+                )
+            with scope_cols[1]:
+                system_name = st.text_input(
+                    ui_message('ui.6725e7bbcd28f3'),
+                    key=f"ess_db_system_{snapshot.session_id}",
+                    placeholder=ui_message('ui.0a63c2e462f0f8'),
+                )
+            with scope_cols[2]:
+                channel = st.selectbox(
+                    ui_message('ui.ce4683e7013a18'),
+                    ["", "Left", "Right", "Center", "Mono", "L+R"],
+                    key=f"ess_db_channel_{snapshot.session_id}",
+                    help=ui_message('ui.7acadeeac7f931'),
+                format_func=localized_formatter(str))
+            with scope_cols[3]:
+                position_name = st.text_input(
+                    ui_message('ui.6d031af10da7a2'),
+                    key=f"ess_db_position_{snapshot.session_id}",
+                    placeholder=ui_message('ui.c5ad34d720f0c8'),
+                )
+            state_cols = st.columns([0.5, 0.5])
+            with state_cols[0]:
+                system_state = st.text_input(
+                    ui_message('ui.ea70af6da7f40e'),
+                    key=f"ess_db_state_{snapshot.session_id}",
+                    placeholder=ui_message('ui.e49800da50b425'),
+                )
+            with state_cols[1]:
+                intended_use = localized_segmented_control(
+                    ui_message('ui.c36d819e7bc6d2'),
+                    ["correction_input", "verification_only", "archive"],
+                    format_func=lambda value: {
+                        "correction_input": "Correction",
+                        "verification_only": "Check",
+                        "archive": "Archive",
+                    }.get(str(value), str(value)),
+                    key=f"ess_db_use_{snapshot.session_id}",
+                    help=ui_message('ui.a48d8639a8395b'),
+                    width="stretch",
+                )
+                if measurement_scope == "combined_room" or channel == "L+R":
+                    intended_use = "verification_only"
+                    st.caption(ui_message('ui.cf487b6eb6e92e'))
+        save_requested = False if active_capture(snapshot) and st.session_state['_multiway_measurement_capture'].get('saved') else localized_button(
             st,
             ui_message('ui.d8e0a9cad5af76'),
             type="primary",

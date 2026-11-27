@@ -78,6 +78,15 @@ def measurement_widgets(plan, index):
     }
 
 
+def result_identity(plan, index):
+    """Project the frozen target; editable legacy fields never own its identity."""
+    step = plan['steps'][index]
+    return dict(measurement_scope='system_channel',
+                system_name=plan['workspace'].get('system_name', ''),
+                channel={'Left': 'Left', 'Right': 'Right'}.get(step['group'], 'Mono'),
+                intended_use=plan['purpose'])
+
+
 def validate_capture(plan, settings):
     step = plan['steps'][plan['current']]
     expected = 'reference_tweeter' if step['channel_id'] == step['reference_id'] else 'target_speaker'

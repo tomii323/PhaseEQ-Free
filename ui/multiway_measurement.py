@@ -9,7 +9,7 @@ import streamlit as st
 from utils.composite_exchange import read_multiway_workspace, _atomic_json
 from utils.multiway_measurement_plan import (
     accept_result, capture_binding, create_plan, measurement_widgets,
-    structure_signature, validate_capture, validate_plan,
+    result_identity, structure_signature, validate_capture, validate_plan,
 )
 from utils.ui_localization import display_text as tr
 
@@ -224,6 +224,22 @@ def capture_started(snapshot):
 def active_capture(snapshot):
     binding = st.session_state.get(BINDING)
     return bool(binding and binding.get('session_id') == snapshot.session_id)
+
+
+def planned_timing():
+    plan = st.session_state.get(PLAN)
+    if plan and st.session_state.get('_multiway_measurement_armed'):
+        return measurement_widgets(plan, plan['current'])
+    return None
+
+
+def planned_result_fields(snapshot):
+    if not active_capture(snapshot):
+        return None
+    identity = result_identity(st.session_state[PLAN], st.session_state[BINDING]['index'])
+    return dict(identity, measurement_name=st.session_state['ess_db_name_'+snapshot.session_id],
+                position_name=st.session_state.get('ess_db_position_'+snapshot.session_id, ''),
+                system_state=st.session_state.get('ess_db_state_'+snapshot.session_id, ''))
 
 
 def result_defaults(snapshot):

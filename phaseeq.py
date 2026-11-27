@@ -19296,7 +19296,10 @@ if active_page == "Measure":
             STORAGE_PATHS['composite_exchange'], SPEAKER_MEASUREMENTS_DB_FILE, busy=measure_busy,
         )
         st.session_state.setdefault("measure_ui_mode", "詳細・従来の測定" if active_measure_engine and not active_measure_engine.settings.guided_measurement else "ガイド測定")
-        required_segmented_control(ui_message('ui.c0e50600cb4822'), ["ガイド測定", "詳細・従来の測定"], key="measure_ui_mode", required=True, disabled=measure_busy or bool(st.session_state.get('_multiway_measurement_plan')), format_func=localized_formatter(str))
+        if st.session_state.get('_multiway_measurement_plan'):
+            st.session_state['measure_ui_mode'] = '詳細・従来の測定'
+        else:
+            required_segmented_control(ui_message('ui.c0e50600cb4822'), ["ガイド測定", "詳細・従来の測定"], key="measure_ui_mode", required=True, disabled=measure_busy, format_func=localized_formatter(str))
         if st.session_state["measure_ui_mode"] == "ガイド測定":
             render_guided_measurement(
                 autosave_root=STORAGE_PATHS["data"] / "tmp" / "measurement_sessions",
