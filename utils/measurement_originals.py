@@ -11,13 +11,15 @@ import numpy as np
 from phase_fir_designer.measurement.original import MeasurementOriginal, calibrated_output
 
 
-def payload_for_original(original: MeasurementOriginal, previous: dict | None = None) -> dict:
+def payload_for_original(original: MeasurementOriginal, previous: dict | None = None, *, response_kind: str | None = None) -> dict:
     payload = deepcopy(previous or {})
-    frequency, response, metadata = calibrated_output(original)
+    kind = response_kind or payload.get('measurement_session', {}).get('response_kind', 'merged')
+    frequency, response, metadata = calibrated_output(original, kind)
     payload.update(frequency=frequency.tolist(),
                    gain_db=(20 * np.log10(np.maximum(np.abs(response), 1e-15))).tolist(),
                    phase_deg=np.rad2deg(np.unwrap(np.angle(response))).tolist())
     session = payload.setdefault('measurement_session', {})
+    session['response_kind'] = kind
     if isinstance(original.metadata.get('timing_provenance'), dict):
         payload.setdefault('timing_provenance', deepcopy(original.metadata['timing_provenance']))
         session.setdefault('timing_provenance', deepcopy(payload['timing_provenance']))

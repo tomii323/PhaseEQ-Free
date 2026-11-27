@@ -4,6 +4,7 @@ from utils.ui_localization import ui_message, display_text, localized_formatter
 
 from datetime import datetime
 import io
+import copy
 import json
 import os
 from pathlib import Path
@@ -30,6 +31,9 @@ from utils.measurement_originals import load_measurement_original
 from utils.standard_audio_assets import StandardAudioAssets
 from utils.ui_work_cache import deferred_call
 from utils.ui_localization import required_segmented_control
+from ui.measurement_points import render_point_setup, auto_save_point, render_point_saved
+from utils.measurement_points import point_ready
+from ui.microphone_pga import render_pga_confirmation
 
 ENGINE_KEY = "_continuous_ess_engine"
 CONFIG_KEY = "_guided_selection"
@@ -398,13 +402,18 @@ def _setup(service, config, autosave_root, microphone_db_path, measurement_db_pa
     if output == "both" and config["position"] == "近接1 cm":
         st.warning(ui_message('ui.adbefed0bb998b'))
     mic = None
+    pga_confirmed = render_pga_confirmation(prefix='guide', profile=profiles.get(unit.profile_id) if unit else None,
+        unit=unit, records=[calibration], device_name=by_device[device]['name'] if device in by_device else '',
+        channel=unit.input_channel if unit else 1)
     try:
         mic = microphone_settings(profiles.get(unit.profile_id) if unit else None, unit, calibration,
-            by_device[device]["name"] if device in by_device else "", unit.input_channel if unit else 1)
+            by_device[device]["name"] if device in by_device else "", unit.input_channel if unit else 1,
+            pga_confirmed=pga_confirmed)
     except ValueError as exc:
         st.info(str(exc))
+    point_spec = render_point_setup(config)
     st.caption(ui_message('ui.3b4a37f0fed7e9'))
-    if st.button(ui_message('ui.8049c0c89a49c6'), type="primary", disabled=mic is None or device is None or not protected or not config["target"].strip(), key='i18n_9ac7dccb89a079e1'):
+    if st.button(ui_message('ui.8049c0c89a49c6'), type="primary", disabled=mic is None or device is None or not protected or not config["target"].strip() or point_spec is False, key='i18n_9ac7dccb89a079e1'):
         try:
             from dataclasses import replace
             save_microphone_unit(microphone_db_path, replace(unit, device_name=by_device[device]["name"]))
@@ -412,9 +421,12 @@ def _setup(service, config, autosave_root, microphone_db_path, measurement_db_pa
             release_audio_downloads_before_capture()
             track = track_for(config["kind"], output)
             settings, reference = settings_for_track(service.status(track, config["media"]), mic, device, config["position"], angle)
+            if point_spec:
+                settings = replace(settings, measurement_distance_m=point_spec.distance_m,
+                                   gate_start_ms=point_spec.gate_start_ms, gate_end_ms=point_spec.gate_end_ms)
             engine = ContinuousMeasurementEngine(settings, Path(autosave_root), reference=reference.samples)
             st.session_state[ENGINE_KEY] = engine
-            st.session_state["_guided_capture_selection"] = dict(config)
+            st.session_state["_guided_capture_selection"] = copy.deepcopy(config)
             st.session_state["_guided_wait_started"] = time.monotonic()
             engine.start()
             _move("capture")
@@ -425,7 +437,7 @@ def _setup(service, config, autosave_root, microphone_db_path, measurement_db_pa
 
 
 @st.fragment(run_every=1)
-def _capture(config, engine):
+def _capture(config, engine, measurement_db_path=None):
     if engine is None:
         _move("setup")
     snap = engine.snapshot()
@@ -468,6 +480,16 @@ def _capture(config, engine):
         if not snap.device_info.get("guide_finalized"):
             st.info(ui_message('ui.c6018ab9fe092a'))
         elif completed(snap):
+            selection = st.session_state.get("_guided_capture_selection", {})
+            if selection.get("point_capture", {}).get("enabled"):
+                if not point_ready(snap):
+                    st.error(snap.error_message or ui_message('ui.bddbd7b9fd9b2f'))
+                    if st.button(ui_message('ui.bbb3efc04bc66f'), key='point_capture_recover'):
+                        _move("setup")
+                elif auto_save_point(snap, measurement_db_path, selection):
+                    cleanup_measurement_autosave(snap)
+                    _move("result")
+                return
             st.success(ui_message('ui.99a5b8acde62fd'))
             if st.button(ui_message('ui.5f7a4a2ebd845e'), type="primary", key='i18n_c27efa24d8a5bd04'):
                 _move("result")
@@ -517,7 +539,7 @@ def render_guided_measurement(*, autosave_root, measurement_db_path, microphone_
                 engine.guide_recheck("曲切り替え中に中断しました。")
                 _move("capture")
         elif step == "capture":
-            _capture(config, engine)
+            _capture(config, engine, measurement_db_path)
         elif step == "result":
             _result(config, engine, measurement_db_path, apply_result)
     except (ValueError, OSError, RuntimeError) as exc:
@@ -531,8 +553,9 @@ def _result(config, engine, db, apply_result):
         st.error(ui_message('ui.bddbd7b9fd9b2f'))
         return
     st.success(ui_message('ui.ce4310f2e6917f', p0=f"{config['target']}", p1=f"{config['position']}"))
+    point_capture = st.session_state.get("_guided_capture_selection", {}).get("point_capture", {}).get("enabled", False)
     st.session_state.setdefault("guide_result_name", f"{config['target']}_{config['position']}_{KINDS[config['kind']]}_{datetime.now():%Y%m%d_%H%M%S}")
-    name = st.text_input(ui_message('ui.12b3c2452d93a6'), key="guide_result_name")
+    name = st.text_input(ui_message('ui.12b3c2452d93a6'), key="guide_result_name", disabled=point_capture)
     saved_id = st.session_state.get("_guided_saved_id")
     is_saved = saved_id == "guided-"+snapshot.session_id
     if st.button(ui_message('ui.a1a4245ad1a583'), type="primary", disabled=is_saved or not name.strip(), key='i18n_2c5f771366103b8d'):
@@ -543,6 +566,13 @@ def _result(config, engine, db, apply_result):
         st.rerun()
     if is_saved:
         st.success(ui_message('ui.dd23b03c04ea3c'))
+        if point_capture:
+            render_point_saved()
+            if st.button(display_text("マイクを移動して次の測点を準備"), key="point_capture_next"):
+                st.session_state.pop("guide_result_name", None)
+                st.session_state.pop("point_capture_label", None)
+                config["point_capture"]["label"] = ""
+                _move("setup")
         from utils.channel_input_policy import channel_input_locked, CHANNEL_INPUT_HELP
         if channel_input_locked(st.session_state):
             st.caption(display_text(CHANNEL_INPUT_HELP))
@@ -552,9 +582,10 @@ def _result(config, engine, db, apply_result):
         elif config["output"] == "both":
             st.caption(ui_message('ui.9a166709a85d99'))
         original = load_measurement_original(Path(db), saved_id)
-        st.download_button(ui_message('ui.365c232f127d05'), deferred_call(calibrated_export_zip, original),
+        response_kind = st.session_state["_guided_capture_selection"]["point_capture"]["response_kind"] if point_capture else "merged"
+        st.download_button(ui_message('ui.365c232f127d05'), deferred_call(calibrated_export_zip, original, response_kind),
             file_name=f"{name}_calibrated.zip", mime="application/zip", on_click="ignore", key='i18n_f7ee37c37012034b')
-        if st.button(ui_message('ui.8620c7874b7e3d'), key='i18n_485370f15800750a'):
+        if not point_capture and st.button(ui_message('ui.8620c7874b7e3d'), key='i18n_485370f15800750a'):
             st.session_state.pop("guide_result_name", None)
             _move("select")
 
@@ -571,7 +602,9 @@ def render_guided_results():
         return
     snap = engine.snapshot()
     if snap.standard_result is not None:
-        frame, metadata = _result_frame(snap.session_id, snap.revision, snap)
+        point_options = st.session_state.get("_guided_capture_selection", {}).get("point_capture", {})
+        response_kind = point_options.get("response_kind", "merged") if point_options.get("enabled") else "merged"
+        frame, metadata = _result_frame(snap.session_id, snap.revision, snap, response_kind)
         low, high = metadata["valid_frequency_range_hz"]
         import altair as alt
         st.altair_chart(alt.Chart(frame).mark_line().encode(x=alt.X("周波数 Hz:Q", scale=alt.Scale(type="log")), y="レベル dB:Q"))
@@ -581,9 +614,9 @@ def render_guided_results():
 
 
 @st.cache_data(max_entries=4, ttl=300, show_spinner=False)
-def _result_frame(session_id, revision, _snapshot):
+def _result_frame(session_id, revision, _snapshot, response_kind="merged"):
     from phase_fir_designer.measurement.original import original_from_snapshot
-    frequency, response, metadata = calibrated_output(original_from_snapshot(_snapshot))
+    frequency, response, metadata = calibrated_output(original_from_snapshot(_snapshot), response_kind)
     low, high = metadata["valid_frequency_range_hz"]
     mask = (frequency >= low) & (frequency <= high)
     stride = max(1, int(np.sum(mask))//2000)

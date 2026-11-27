@@ -14,6 +14,7 @@ from phase_fir_designer.measurement.original import original_from_snapshot
 from phase_fir_designer.measurement.standard_audio import load_standard_reference
 from utils.measurement_originals import attach_calibration_sources, payload_for_original
 from utils.minidsp_calibration import minidsp_calibration_header
+from utils.microphone_pga import pga_confirmation_source
 from utils.microphone_db import calibration_text_matches_serial
 from utils.settings_io import speaker_response_from_payload
 from utils.speaker_db import SpeakerMeasurementRecord, save_measurement
@@ -27,7 +28,7 @@ PENDING_REASONS = {
 }
 
 
-def microphone_settings(profile, unit, calibration, device_name, input_channel):
+def microphone_settings(profile, unit, calibration, device_name, input_channel, *, pga_confirmed=False):
     if profile is None or unit is None or calibration is None:
         raise ValueError("マイク個体と校正ファイルを登録してください。")
     if profile.device_name_patterns and not any(pattern.lower() in device_name.lower() for pattern in profile.device_name_patterns):
@@ -44,14 +45,14 @@ def microphone_settings(profile, unit, calibration, device_name, input_channel):
     adjustment = gain.gain_adjustment_from_max_db
     if not gain.available or adjustment is None:
         raise ValueError("入力Gainを読み取れないため個体感度を確定できません。" + gain.error)
-    if header[1] is not None and (gain.analog_gain_db is None or abs(header[1]-gain.analog_gain_db) > .05):
-        raise ValueError("校正ファイルの内部Gainと現在の設定を照合できません。")
+    pga_source = pga_confirmation_source(profile.id, header[1], gain.analog_gain_db, confirmed=pga_confirmed)
     return dict(channels=1, input_mode="known_wav_mono", input_channel=input_channel,
         microphone_profile_id=profile.id, microphone_unit_id=unit.id,
         microphone_serial_number=unit.serial_number, mic_calibration_id=calibration.id,
         mic_calibration_frequency_hz=tuple(curve.frequency), mic_calibration_gain_db=tuple(curve.gain_db),
         level_calibration_mode="minidsp_sens_factor", minidsp_sens_factor_db=header[0],
         minidsp_analog_gain_db=header[1], minidsp_gain_adjustment_db=adjustment,
+        minidsp_pga_confirmation_source=pga_source,
         input_gain_db_channels=tuple(gain.channel_gain_db), input_gain_max_db_channels=tuple(gain.channel_max_gain_db),
         input_gain_device_name=gain.device_name, input_analog_gain_db=gain.analog_gain_db,
         require_stable_input_gain=True)
@@ -85,11 +86,13 @@ def save_guided_result(path: Path, snapshot, selection: dict, name: str):
         raise ValueError("同条件の3件と統合結果が成立していません。")
     original = attach_calibration_sources(original_from_snapshot(snapshot), path)
     original = replace(original, metadata={**original.metadata, "guided_selection": dict(selection)})
-    payload = payload_for_original(original)
+    point = selection.get("point_capture", {})
+    payload = payload_for_original(original, response_kind=point["response_kind"] if point.get("enabled") else "merged")
     both = selection["output"] == "both"
     return save_measurement(path, record=SpeakerMeasurementRecord(
         id="guided-"+snapshot.session_id, name=name, measurement_date=date.today().isoformat(),
-        channel=selection["output"], position_name=selection["position"], distance=selection["position"],
+        channel=selection["output"], position_name=(selection["point_capture"]["label"] if selection.get("point_capture", {}).get("enabled") else selection["position"]),
+        distance=(f"{selection['point_capture']['distance_m']:g} m" if selection.get("point_capture", {}).get("enabled") else selection["position"]),
         angle=str(selection.get("angle", 0)), microphone=snapshot.settings.microphone_serial_number,
         measurement_scope="combined" if both else "system_channel",
         intended_use="verification_only" if both else "correction_input", source_type="speaker_input_raw",

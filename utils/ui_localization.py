@@ -607,6 +607,51 @@ JAPANESE_UI_LABELS.update({'Individual measurements before averaging: input and 
 JAPANESE_UI_LABELS.update({'Apply and save': '適用・保存', 'Create and evaluate (Experimental)': '作成・評価（試用）'})
 JAPANESE_UI_LABELS.update({'For measurements, use Create and evaluate (Experimental), load the generated result, then use Apply and save. Load existing correction curves under Apply and save.': '測定から作る場合は「作成・評価（試用）」→生成結果の読込み→「適用・保存」の順に進みます。既存の補正カーブは「適用・保存」で読み込みます。', 'Load a curve, check its direction and contents, then enable it. Update and export the EQ, then remeasure the same seats.': 'カーブを読み込み、適用方向と内容を確認してONにします。その後、EQを更新・出力して同じ席で再測定してください。', '**1. Load measurements**': '**1. 測定データを読み込む**', '**2. Set averaging and level matching**': '**2. 平均化とレベル合わせを設定する**', '**3. Set correction band and limits**': '**3. 補正する帯域と上限を設定する**', 'An additive correction curve has been generated. Compare the seat predictions; to use it, select Load generated curve into Room EQ and continue under Apply and save.': '加算用の補正カーブを生成しました。各席の補正前後を比較し、使う場合は「生成カーブを補正欄へ読み込む」を押して「適用・保存」へ進みます。'})
 JAPANESE_UI_LABELS.update({'Smoothing details': '平滑化の詳細'})
+JAPANESE_UI_LABELS.update({
+    'Automatically save each measurement position': '測点ごとに自動保存する',
+    'Combine three accepted captures into one result and save an FRD and a Library original after capture stops. External playback continues; stop it before moving the microphone.': '品質条件を満たす3回を1件に統合し、収録終了後にFRDと測定ライブラリへ保存します。外部プレーヤーの再生は停止しないため、完了後に止めてからマイクを移動してください。',
+    'Position name (e.g. 1 m reference, centre seat at 3 m)': '測点名（例：基準1m、客席3m中央）',
+    'Measurement distance [m]': '測定距離 [m]',
+    'Save folder': '保存フォルダー',
+    'This folder is on the PC running PhaseEQ. Enter its path or select it below.': 'PhaseEQを実行しているPCのフォルダーです。パスを入力するか、下の一覧で選択します。',
+    'Select a folder': 'フォルダーを選択',
+    'Destination folder': '移動先フォルダー',
+    'Open selected folder': '選択したフォルダーへ移動',
+    'Cannot open the folder. Check the save path.': 'フォルダーを開けません。保存先のパスを確認してください。',
+    'Filename prefix': 'ファイル名の先頭文字列',
+    'Gated response (1 m reference)': 'ゲートあり（1m基準）',
+    'Response including reflections (listening position)': '反射を含む応答（試聴位置）',
+    'Response to save': '保存する応答',
+    'Check the first reflection in the IR and set the gate. Merge near-field bass separately.': 'IRの最初の反射を確認し、ゲートを設定してください。低域の近接合成は別途行います。',
+    'Gate start [ms]': 'ゲート開始 [ms]',
+    'Gate end [ms]': 'ゲート終了 [ms]',
+    'Filename: prefix_YYYYMMDD_HHMMSS.frd (capture completion time, in seconds). Existing files are not overwritten.': 'ファイル名：先頭文字列_YYYYMMDD_HHMMSS.frd（測定終了日時・秒単位）。同名ファイルは上書きしません。',
+    'Select left or right and measure the speakers separately for position saving.': '測点保存では左または右を選択し、左右スピーカーを別々に測定してください。',
+    'File saving is incomplete. The measurement result is retained.': 'ファイル保存が完了していません。測定結果を保持しています。',
+    'Save folder for retry': '再試行の保存フォルダー',
+    'Retry saving': '保存を再試行',
+    'Position saved. Stop the external player before moving the microphone.': '測点の保存が完了しました。外部プレーヤーを停止してからマイクを移動してください。',
+    'Positions saved this session (latest 32)': '今回保存した測点（最新32件）',
+    'Move the microphone and prepare the next position': 'マイクを移動して次の測点を準備',
+    'Select an existing save folder.': '保存先には既存のフォルダーを選択してください。',
+    'Use a prefix of up to 100 characters without path separators or reserved symbols.': '先頭文字列は100文字以内とし、パス区切り・予約記号を除いてください。',
+    'Windows reserved device names cannot be used as prefixes.': '先頭文字列にWindowsの予約名は使用できません。',
+    'Enter a position name of up to 200 characters without line breaks.': '測点名を改行なし・200文字以内で入力してください。',
+    'Set the measurement distance between 0.01 and 100 m.': '測定距離は0.01〜100mの範囲にしてください。',
+    'Select a gated response or a response including reflections.': '応答はゲートあり／反射を含む応答から選択してください。',
+    'Check the gate start/end order and range.': 'ゲート開始・終了の順序と範囲を確認してください。',
+    'No valid frequency response is available to save.': '保存できる有効な周波数応答がありません。',
+    'Wait for integration after quality acceptance.': '品質判定後の統合完了を待ってください。',
+    'The save folder or file format does not match.': '保存先フォルダーとファイル形式が一致しません。',
+    'A file with the same name exists. Change the prefix or save folder.': '同名ファイルがあります。先頭文字列または保存先を変更してください。',
+})
+
+JAPANESE_UI_LABELS.update({
+    'UMIK-2 internal PGA matches calibration AGain ({gain:g} dB)': 'UMIK-2の内部PGAが校正AGain（{gain:g} dB）と一致することを確認しました',
+    'Internal PGA is separate from OS input volume. PhaseEQ cannot read the current UMIK-2 PGA. Check that it matches calibration AGain using the manufacturer tool or a known unchanged calibration setting. If unsure, leave this unchecked. Do not change PGA during capture; stop and repeat setup after any change.': '内部PGAはOSの入力音量とは別の設定です。PhaseEQはUMIK-2の現在のPGAを取得できません。メーカーの設定ツール、または校正時からPGAを変更していないことが分かる設定履歴で、校正AGainとの一致を確認してください。不明な場合はチェックしないでください。収録中はPGAを変更せず、変更後は停止して準備からやり直してください。',
+})
+
+
 ENGLISH_UI_LABELS: dict[str, str] = {
     japanese: english for english, japanese in JAPANESE_UI_LABELS.items()
 }

@@ -572,6 +572,14 @@ class ContinuousMeasurementEngine:
                 "reference_source_name": self._settings.reference_source_name,
             }
             gain_snapshot = read_input_gain_snapshot(str(device.get("name", "")), self._settings.channels)
+            if self._settings.require_stable_input_gain:
+                expected_gain = InputGainSnapshot(True,
+                    device_name=self._settings.input_gain_device_name,
+                    channel_gain_db=self._settings.input_gain_db_channels,
+                    channel_max_gain_db=self._settings.input_gain_max_db_channels,
+                    analog_gain_db=self._settings.input_analog_gain_db)
+                if not input_gain_is_unchanged(expected_gain, gain_snapshot):
+                    raise RuntimeError("Input gain changed or could not be verified since setup; repeat microphone setup")
             if gain_snapshot.available:
                 preferred_gain = preferred_umik1_gain_db(
                     self._settings,
@@ -600,7 +608,7 @@ class ContinuousMeasurementEngine:
                             )
                 self._settings = self._settings_with_input_gain_snapshot(gain_snapshot)
                 self._device_info.update(
-                    input_gain_source="CoreAudio",
+                    input_gain_source=gain_snapshot.source,
                     input_gain_db_channels=list(gain_snapshot.channel_gain_db),
                     input_gain_min_db_channels=list(gain_snapshot.channel_min_gain_db),
                     input_gain_max_db_channels=list(gain_snapshot.channel_max_gain_db),
@@ -609,7 +617,7 @@ class ContinuousMeasurementEngine:
                 )
             elif self._settings.input_gain_db_channels:
                 self._device_info.update(
-                    input_gain_source="CoreAudio",
+                    input_gain_source="",
                     input_gain_db_channels=list(self._settings.input_gain_db_channels),
                     input_gain_max_db_channels=list(self._settings.input_gain_max_db_channels),
                     input_gain_device_name=self._settings.input_gain_device_name,
@@ -826,7 +834,7 @@ class ContinuousMeasurementEngine:
             self._preflight_ready = False
             self._gain_recheck_required = True
             self._device_info.update(
-                input_gain_source="CoreAudio",
+                input_gain_source=changed.source,
                 input_gain_db_channels=list(changed.channel_gain_db),
                 input_gain_min_db_channels=list(changed.channel_min_gain_db),
                 input_gain_max_db_channels=list(changed.channel_max_gain_db),
@@ -921,6 +929,7 @@ class ContinuousMeasurementEngine:
                 input_gain_db_channels=source.settings_snapshot.input_gain_db_channels,
                 input_gain_max_db_channels=source.settings_snapshot.input_gain_max_db_channels,
                 input_analog_gain_db=source.settings_snapshot.input_analog_gain_db,
+                minidsp_pga_confirmation_source=source.settings_snapshot.minidsp_pga_confirmation_source,
                 minidsp_gain_adjustment_db=source.settings_snapshot.minidsp_gain_adjustment_db,
                 response_gain_reference_db=source.settings_snapshot.response_gain_reference_db,
             )
@@ -2000,7 +2009,7 @@ class ContinuousMeasurementEngine:
             channel_gain_db=self._settings.input_gain_db_channels,
             channel_max_gain_db=self._settings.input_gain_max_db_channels,
             analog_gain_db=self._settings.input_analog_gain_db,
-            source="CoreAudio",
+            source=str(self._device_info.get("input_gain_source", "")),
         )
         current = read_input_gain_snapshot(device_name, self._settings.channels)
         if not current.available:
@@ -2008,6 +2017,11 @@ class ContinuousMeasurementEngine:
                 "Input gain can no longer be verified; manufacturer SPL calibration is suspended"
                 if self._settings.require_stable_input_gain else ""
             )
+        if self._settings.require_stable_input_gain and (
+                expected.channel_max_gain_db != current.channel_max_gain_db
+                or expected.analog_gain_db != current.analog_gain_db
+                or current.gain_adjustment_from_max_db is None):
+            return "Input gain calibration conditions changed; repeat microphone setup before measuring"
         if not input_gain_is_unchanged(expected, current):
             old_gain = float(np.mean(self._settings.input_gain_db_channels)) if self._settings.input_gain_db_channels else 0.0
             new_gain = float(np.mean(current.channel_gain_db)) if current.channel_gain_db else old_gain

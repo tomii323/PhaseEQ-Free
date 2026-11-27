@@ -101,6 +101,7 @@ class MeasurementSettings:
     require_stable_input_gain: bool = False
     minidsp_sens_factor_db: float = 0.0
     minidsp_analog_gain_db: float | None = None
+    minidsp_pga_confirmation_source: str = ""
     minidsp_gain_adjustment_db: float = 0.0
     level_reference_spl_db: float = 94.0
     level_reference_dbfs: float = 0.0

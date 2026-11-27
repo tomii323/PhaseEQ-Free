@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import ctypes
+import math
 import platform
 import re
 
@@ -24,6 +25,8 @@ class InputGainSnapshot:
             return None
         if len(self.channel_gain_db) != len(self.channel_max_gain_db):
             return None
+        if not all(math.isfinite(x) for x in (*self.channel_gain_db, *self.channel_max_gain_db)):
+            return None
         differences = [maximum - current for current, maximum in zip(self.channel_gain_db, self.channel_max_gain_db)]
         if max(differences) - min(differences) > 0.1:
             return None
@@ -33,12 +36,19 @@ class InputGainSnapshot:
 def read_input_gain_snapshot(device_name: str, channels: int = 2) -> InputGainSnapshot:
     if not str(device_name).strip():
         return InputGainSnapshot(available=False, error="Input device is not selected")
-    if platform.system() != "Darwin":
-        return InputGainSnapshot(available=False, error="Input gain reading is not implemented on this OS")
+    system = platform.system()
     try:
-        return _read_coreaudio_input_gain(device_name, channels)
+        if system == "Darwin":
+            return _read_coreaudio_input_gain(device_name, channels)
+        if system == "Linux":
+            from .input_gain_alsa import read_alsa_input_gain
+            return read_alsa_input_gain(device_name, channels)
+        if system == "Windows":
+            from .input_gain_windows import read_windows_input_gain
+            return read_windows_input_gain(device_name, channels)
+        return InputGainSnapshot(available=False, error="Input gain reading is not implemented on this OS")
     except Exception as exc:
-        return InputGainSnapshot(available=False, error=f"CoreAudio input gain could not be read: {exc}")
+        return InputGainSnapshot(available=False, error=f"{system} input gain could not be read: {exc}")
 
 
 def set_input_gain_adjustment(device_name: str, channels: int, adjustment_db: float) -> InputGainSnapshot:
@@ -59,6 +69,9 @@ def input_gain_is_unchanged(
 ) -> bool:
     if not expected.available or not current.available:
         return False
+    if (not expected.channel_gain_db or not current.channel_gain_db
+            or not all(math.isfinite(x) for x in (*expected.channel_gain_db, *current.channel_gain_db))):
+        return False
     if _device_token(expected.device_name) != _device_token(current.device_name):
         return False
     if expected.analog_gain_db is not None or current.analog_gain_db is not None:
@@ -67,6 +80,8 @@ def input_gain_is_unchanged(
         if abs(expected.analog_gain_db - current.analog_gain_db) > tolerance_db:
             return False
     if len(expected.channel_gain_db) != len(current.channel_gain_db):
+        return False
+    if expected.channel_max_gain_db != current.channel_max_gain_db:
         return False
     return all(
         abs(before - after) <= tolerance_db
@@ -331,5 +346,8 @@ def _model_token(value: str) -> str:
 
 
 def _analog_gain_from_name(value: str) -> float | None:
+    # UMIK-2 naming does not expose the vendor PGA; keep it separate from OS volume.
+    if _model_token(value) == "umik2":
+        return None
     match = re.search(r"\bGain\s*:\s*([-+]?\d+(?:\.\d+)?)\s*dB", str(value), flags=re.IGNORECASE)
     return float(match.group(1)) if match else None

@@ -20,6 +20,8 @@ import pandas as pd
 import streamlit as st
 
 from utils.ui_work_cache import deferred_call
+from ui.microphone_pga import render_pga_confirmation
+from utils.microphone_pga import pga_confirmation_source
 
 from phase_fir_designer import SpeakerResponse
 from phase_fir_designer.cache_coordinator import (
@@ -1300,6 +1302,12 @@ def render_measurement_controls(
             else:
                 st.caption(ui_message('ui.599ecd426b7552'))
 
+        pga_confirmed = render_pga_confirmation(prefix='ess', profile=microphone_profile, unit=microphone_unit,
+            records=([calibration_by_id.get(str(calibration_id)),
+                calibration_by_id.get(microphone_unit.calibration_measurement_id),
+                calibration_by_id.get(microphone_unit.calibration_90_measurement_id)]
+                if microphone_unit is not None else []),
+            device_name=device_name, channel=(analysis_channels, input_channel), disabled=running)
         minidsp_level = _resolve_minidsp_level_calibration(
             profile=microphone_profile,
             unit=microphone_unit,
@@ -1307,6 +1315,7 @@ def render_measurement_controls(
             records=calibration_by_id,
             device_name=device_name,
             channels=analysis_channels,
+            pga_confirmed=pga_confirmed,
         )
         if minidsp_level["frequency_status"]:
             st.success(str(minidsp_level["frequency_status"]))
@@ -1904,6 +1913,7 @@ def render_measurement_controls(
             "require_stable_input_gain": level_mode == "minidsp_sens_factor",
             "minidsp_sens_factor_db": float(minidsp_level["factor"] or 0.0),
             "minidsp_analog_gain_db": minidsp_level["analog_gain"],
+            "minidsp_pga_confirmation_source": minidsp_level["pga_source"],
             "minidsp_gain_adjustment_db": float(minidsp_level["gain_adjustment"] or 0.0),
         }
         level_preview_settings = MeasurementSettings(
@@ -3334,6 +3344,7 @@ def render_measurement_results(*, measurement_db_path: Path) -> None:
                         "input_analog_gain_db": snapshot.settings.input_analog_gain_db,
                         "minidsp_sens_factor_db": snapshot.settings.minidsp_sens_factor_db,
                         "minidsp_analog_gain_db": snapshot.settings.minidsp_analog_gain_db,
+                        "minidsp_pga_confirmation_source": snapshot.settings.minidsp_pga_confirmation_source,
                         "minidsp_gain_adjustment_db": snapshot.settings.minidsp_gain_adjustment_db,
                         "reference_spl_db": snapshot.settings.level_reference_spl_db,
                         "reference_dbfs_rms": snapshot.settings.level_reference_dbfs,
@@ -3438,12 +3449,14 @@ def _resolve_minidsp_level_calibration(
     records: dict[str, SpeakerMeasurementRecord],
     device_name: str,
     channels: int,
+    pga_confirmed: bool = False,
 ) -> dict[str, object]:
     gain_snapshot = read_input_gain_snapshot(device_name, channels) if device_name else read_input_gain_snapshot("", channels)
     result: dict[str, object] = {
         "available": False,
         "factor": None,
         "analog_gain": None,
+        "pga_source": "",
         "gain_adjustment": None,
         "gain_snapshot": gain_snapshot,
         "reason": "個体校正ファイルを選択してください",
@@ -3511,17 +3524,12 @@ def _resolve_minidsp_level_calibration(
     if gain_adjustment is None:
         result["reason"] = "左右チャンネルの入力Gain条件を一意に補正できません"
         return result
-    expected_analog_gain = analog_values[0]
-    if expected_analog_gain is not None:
-        if gain_snapshot.analog_gain_db is None:
-            result["reason"] = "校正ファイルのAGainと現在の内部Gainを照合できません"
-            return result
-        if abs(float(expected_analog_gain) - float(gain_snapshot.analog_gain_db)) > 0.05:
-            result["reason"] = (
-                f"校正AGain {float(expected_analog_gain):g} dBと現在の内部Gain "
-                f"{float(gain_snapshot.analog_gain_db):g} dBが一致しません"
-            )
-            return result
+    try:
+        result["pga_source"] = pga_confirmation_source(profile.id, analog_values[0],
+            gain_snapshot.analog_gain_db, confirmed=pga_confirmed)
+    except ValueError as exc:
+        result["reason"] = str(exc)
+        return result
     result["available"] = True
     result["reason"] = ""
     return result
